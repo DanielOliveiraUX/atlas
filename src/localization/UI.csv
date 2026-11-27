@@ -1,0 +1,16 @@
+Key,Source,Context,Example,en,es
+UI.Loading,Carregando sua expedição...,,,Loading your expedition...,Cargando tu expedición...
+UI.Welcome,Bem-vindo à ATLAS!,,,Welcome to ATLAS!,¡Bienvenido a ATLAS!
+Error.DataLoad,Não foi possível carregar seus dados. Tente entrar novamente em instantes.,,,"We couldn't load your data. Please try joining again in a moment.","No pudimos cargar tus datos. Intenta entrar de nuevo en un momento."
+Team.Slot,Vaga {slot},,Vaga 1,Slot {slot},Espacio {slot}
+Team.Empty,Vazio,,,Empty,Vacío
+Team.Equip,Equipar,,,Equip,Equipar
+Team.Unequip,Retirar,,,Unequip,Retirar
+Collection.Title,Coleção,,,Collection,Colección
+Collection.Full,Sua coleção está cheia ({count}/{limit}),,Sua coleção está cheia (10/10),Your collection is full ({count}/{limit}),Tu colección está llena ({count}/{limit})
+Fatigue.Ready,Pronto para batalhar,,,Ready to battle,Listo para combatir
+Fatigue.Remaining,Descansando: {seconds}s,,Descansando: 8s,Resting: {seconds}s,Descansando: {seconds}s
+Difficulty.Explorer,Explorador,,,Explorer,Explorador
+Difficulty.Adventurer,Aventureiro,,,Adventurer,Aventurero
+Difficulty.Survivor,Sobrevivente,,,Survivor,Superviviente
+Species.Starter.Name,Pet inicial,,,Starter pet,Mascota inicial

@@ -1,0 +1,11 @@
+# Arquivos de place/modelo gerados localmente
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxm
+*.rbxmx
+
+# Sistema
+.DS_Store
+Thumbs.db
