@@ -21,9 +21,9 @@ local WorldConfig = {
 	LotPetRestPart = "PetRest", -- área de descanso (recuperação 1,5x)
 
 	-- Medidas usadas pelo construtor do cenário
-	HubRadius = 46,
-	LotRadius = 118, -- distância do centro do hub até o centro de cada lote
-	LotSize = 52,
+	HubRadius = 40, -- praça de pedra em anéis, com a fonte no centro
+	LotRadius = 128, -- distância do centro da vila até o centro de cada lote
+	LotSize = 70, -- diâmetro da clareira de cada lote (é circular, não quadrada)
 }
 
 function WorldConfig.LotName(index: number): string
