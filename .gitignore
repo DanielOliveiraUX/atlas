@@ -6,6 +6,11 @@
 *.rbxm
 *.rbxmx
 
+# Exceção: atlas.rbxl é FONTE, não artefato gerado.
+# O cenário, os modelos 3D e os assets vivem no place (ver CLAUDE.md), fora do
+# Rojo — se ele não for versionado, existe só no HD de uma máquina.
+!atlas.rbxl
+
 # Sistema
 .DS_Store
 Thumbs.db
