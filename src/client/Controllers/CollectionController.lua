@@ -46,10 +46,15 @@ local function creatureLabel(creature): string
 	return creature.Nickname or speciesName(creature.SpeciesId)
 end
 
+-- FormatByKey imprime número como "1.00". Todo argumento numérico vai como texto.
+local function num(value: number): string
+	return tostring(math.floor(value))
+end
+
 local function fatigueText(creature): string
 	local untilTime = creature.FatigueUntil
 	if untilTime and os.time() < untilTime then
-		return Localization.Get(player, "Fatigue.Remaining", { seconds = untilTime - os.time() })
+		return Localization.Get(player, "Fatigue.Remaining", { seconds = num(untilTime - os.time()) })
 	end
 	return Localization.Get(player, "Fatigue.Ready")
 end
@@ -96,7 +101,7 @@ local function refreshSlots()
 		caption.TextSize = 16
 		caption.TextXAlignment = Enum.TextXAlignment.Left
 		caption.TextColor3 = Theme.Colors.TextMuted
-		caption.Text = Localization.Get(player, "Team.Slot", { slot = index })
+		caption.Text = Localization.Get(player, "Team.Slot", { slot = num(index) })
 		caption.Parent = slot
 
 		local creatureId = activeTeam[key]
@@ -185,7 +190,7 @@ local function refreshCards()
 		level.TextSize = 16
 		level.TextXAlignment = Enum.TextXAlignment.Left
 		level.TextColor3 = Theme.Colors.Accent
-		level.Text = Localization.Get(player, "Creature.Level", { level = creature.Level })
+		level.Text = Localization.Get(player, "Creature.Level", { level = num(creature.Level) })
 		level.Parent = card
 
 		local state = Instance.new("TextLabel")
