@@ -1,9 +1,6 @@
--- Mostra o passo atual do tutorial e avisa o servidor quando a parte do
--- cliente termina. Quem decide o passo é sempre o servidor.
---
--- A apresentação do pet inicial NÃO é feita aqui: ela é a revelação normal
--- de qualquer pet recebido (CardRevealController). O tutorial só espera o
--- jogador fechar o card.
+-- Orquestra o que o jogador vê em cada passo do tutorial: a faixa de
+-- objetivo, a seta sobre o alvo, as falas do mentor, a chegada do pet e o
+-- card de revelação. Quem decide o passo é sempre o servidor.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -15,6 +12,9 @@ local Remotes = require(Shared.Remotes)
 
 local CardRevealController = require(script.Parent.CardRevealController)
 local CollectionController = require(script.Parent.CollectionController)
+local DialogueController = require(script.Parent.DialogueController)
+local ObjectiveArrowController = require(script.Parent.ObjectiveArrowController)
+local PetArrivalController = require(script.Parent.PetArrivalController)
 
 local player = Players.LocalPlayer
 
@@ -26,7 +26,6 @@ local titleLabel: TextLabel
 local bodyLabel: TextLabel
 local stepLabel: TextLabel
 
-local currentStep: any = nil
 local connections: { RBXScriptConnection } = {}
 
 local function sendAction(stepId: string)
@@ -34,7 +33,7 @@ local function sendAction(stepId: string)
 	action:FireServer(stepId)
 end
 
--- Desenho --------------------------------------------------------------------
+-- Faixa de objetivo ----------------------------------------------------------
 
 local function showBanner(step)
 	titleLabel.Text = Localization.Get(player, step.TitleKey)
@@ -48,11 +47,7 @@ local function showBanner(step)
 	end
 end
 
-local function hideBanner()
-	banner.Visible = false
-end
-
--- Passos ---------------------------------------------------------------------
+-- Passos ----------------------------------------------------------------------
 
 local function clearConnections()
 	for _, connection in connections do
@@ -61,41 +56,87 @@ local function clearConnections()
 	table.clear(connections)
 end
 
+local function once(signal: RBXScriptSignal, handler: (...any) -> ())
+	local connection
+	connection = signal:Connect(function(...)
+		connection:Disconnect()
+		handler(...)
+	end)
+	table.insert(connections, connection)
+end
+
 local function applyStep(step)
 	clearConnections()
-	currentStep = step
 
 	if not step then
-		hideBanner()
+		banner.Visible = false
+		ObjectiveArrowController:SetTarget(nil)
+		DialogueController:Stop()
 		return
 	end
 
 	showBanner(step)
+	ObjectiveArrowController:SetTarget(step.Target, step.BaseLot)
 
-	if step.Id == "ReceivePet" then
-		-- O card já apareceu sozinho ao receber o pet; esperamos ele fechar.
-		if not CardRevealController:IsShowing() then
-			task.defer(sendAction, "ReceivePet")
+	if step.Advance == "Dialogue" then
+		-- Na chegada do pet, as falas correm junto com a corrida; só avança
+		-- quando as duas coisas terminam.
+		if step.PetArrival then
+			local dialogueDone, petDone = false, false
+			local function tryFinish()
+				if dialogueDone and petDone then
+					sendAction(step.Id)
+				end
+			end
+			once(PetArrivalController.Arrived, function()
+				petDone = true
+				tryFinish()
+			end)
+			once(DialogueController.Finished, function()
+				dialogueDone = true
+				tryFinish()
+			end)
+			DialogueController:Play(step.SpeakerKey, step.Lines)
 			return
 		end
-		table.insert(connections, CardRevealController.Dismissed:Connect(function()
-			sendAction("ReceivePet")
-		end))
+
+		once(DialogueController.Finished, function()
+			sendAction(step.Id)
+		end)
+		DialogueController:Play(step.SpeakerKey, step.Lines)
+		return
+	end
+
+	if step.Advance == "Card" then
+		if not CardRevealController:IsShowing() then
+			-- o card já foi fechado antes deste passo chegar
+			task.defer(sendAction, step.Id)
+			return
+		end
+		once(CardRevealController.Dismissed, function()
+			sendAction(step.Id)
+		end)
 		return
 	end
 
 	if step.Id == "OpenCollection" then
 		if CollectionController:IsOpen() then
-			task.defer(sendAction, "OpenCollection")
+			task.defer(sendAction, step.Id)
 			return
 		end
-		table.insert(connections, CollectionController.Opened:Connect(function()
-			sendAction("OpenCollection")
-		end))
+		once(CollectionController.Opened, function()
+			sendAction(step.Id)
+		end)
+		return
+	end
+
+	-- Passos com falas que não dependem delas para avançar (ex.: voltar à base)
+	if step.Lines and #step.Lines > 0 then
+		DialogueController:Play(step.SpeakerKey, step.Lines)
 	end
 end
 
--- Construção -----------------------------------------------------------------
+-- Construção -------------------------------------------------------------------
 
 function TutorialController:Init()
 	gui = Instance.new("ScreenGui")

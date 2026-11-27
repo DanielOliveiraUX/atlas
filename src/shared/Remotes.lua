@@ -12,6 +12,7 @@ local EVENTS = {
 	"InventoryUpdate",
 	"CreatureUpdate", -- servidor -> cliente: coleção mudou
 	"CreatureGranted", -- servidor -> cliente: recebeu um pet (dispara o card)
+	"PetArrival", -- servidor -> cliente: o pet chega correndo (cena do tutorial)
 	"ExpeditionUpdate",
 
 	-- Tutorial

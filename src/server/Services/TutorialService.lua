@@ -3,6 +3,9 @@
 -- O servidor é dono do passo atual; o cliente só exibe o que recebe e avisa
 -- quando terminou a parte dele. Um cliente que mande TutorialAction fora de
 -- hora não avança nada.
+--
+-- O tutorial termina quando o jogador CHEGA na própria base andando. Não há
+-- teleporte no fim: a caminhada é a primeira volta pela vila.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -44,6 +47,11 @@ local function sendStep(player: Player, index: number?)
 		TitleKey = step.TitleKey,
 		BodyKey = step.BodyKey,
 		Advance = step.Advance,
+		Target = step.Target,
+		Lines = step.Lines,
+		SpeakerKey = TutorialConfig.SpeakerKey,
+		PetArrival = step.PetArrival,
+		BaseLot = player:GetAttribute("BaseLot"),
 	})
 end
 
@@ -70,6 +78,36 @@ function TutorialService:GrantStarter(player: Player)
 	return creature
 end
 
+-- Chegada na base -------------------------------------------------------------
+
+local function baseSpawnPosition(player: Player): Vector3?
+	local lot = BaseService:GetLot(player)
+	if not lot then
+		return nil
+	end
+	local target = BaseService:GetLotSpawn(lot)
+	return target and target.Position
+end
+
+-- Fica conferindo a distância enquanto o jogador estiver neste passo.
+local function watchReachBase(self, player: Player, index: number)
+	task.spawn(function()
+		while stepByPlayer[player] == index and player.Parent do
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local target = baseSpawnPosition(player)
+			if root and root:IsA("BasePart") and target then
+				local flat = Vector3.new(root.Position.X - target.X, 0, root.Position.Z - target.Z)
+				if flat.Magnitude <= TutorialConfig.ReachBaseDistance then
+					self:Advance(player, TutorialConfig.GetStep(index).Id)
+					return
+				end
+			end
+			task.wait(TutorialConfig.ReachBaseInterval)
+		end
+	end)
+end
+
 -- Avanço ---------------------------------------------------------------------
 
 local function finish(player: Player)
@@ -79,8 +117,6 @@ local function finish(player: Player)
 	end
 	stepByPlayer[player] = nil
 	sendStep(player, nil)
-	-- Fim do tutorial: o jogador vai para a própria base e explora a partir dali
-	BaseService:TeleportToBase(player)
 end
 
 function TutorialService:SetStep(player: Player, index: number)
@@ -94,16 +130,29 @@ function TutorialService:SetStep(player: Player, index: number)
 	end
 
 	stepByPlayer[player] = index
+
+	-- O pet é entregue ao ENTRAR no passo: assim o card já encontra a criatura
+	-- registrada na coleção.
+	if step.GrantStarter then
+		self:GrantStarter(player)
+	end
+
 	sendStep(player, index)
+
+	if step.PetArrival then
+		local arrival = Remotes.Get("PetArrival") :: RemoteEvent
+		arrival:FireClient(player, GameConfig.StarterSpeciesId)
+	end
 
 	if step.Advance == "Auto" then
 		local delay = step.DelaySeconds or 3
 		task.delay(delay, function()
-			-- Só avança se o jogador ainda está neste passo
 			if stepByPlayer[player] == index then
 				self:Advance(player, step.Id)
 			end
 		end)
+	elseif step.Advance == "ReachBase" then
+		watchReachBase(self, player, index)
 	end
 end
 
@@ -144,8 +193,6 @@ end
 
 -- Mentor ---------------------------------------------------------------------
 
--- Liga o ProximityPrompt do mentor no hub. O cenário é construído no Studio,
--- então o prompt pode ainda não existir quando o servidor sobe.
 function TutorialService:BindMentor()
 	task.spawn(function()
 		local hub = workspace:WaitForChild(WorldConfig.HubFolder, 60)
@@ -171,12 +218,10 @@ function TutorialService:BindMentor()
 				return
 			end
 			local step = TutorialConfig.GetStep(index)
-			if not step or step.Id ~= "GoToMentor" then
+			if not step or step.Advance ~= "Prompt" then
 				return
 			end
-			-- Entrega o pet ao sair deste passo; o próximo passo o apresenta.
-			self:GrantStarter(player)
-			self:Advance(player, "GoToMentor")
+			self:Advance(player, step.Id)
 		end)
 	end)
 end
@@ -192,7 +237,6 @@ function TutorialService:Start()
 		end)
 	end)
 
-	-- Quem já estava com o perfil carregado antes deste serviço subir
 	for _, player in Players:GetPlayers() do
 		if PlayerDataService:GetData(player) then
 			task.spawn(function()
@@ -201,7 +245,8 @@ function TutorialService:Start()
 		end
 	end
 
-	-- Passos que o cliente conclui (fechou o cartão, abriu a coleção...)
+	-- Passos que o cliente conclui: falas lidas, card fechado, coleção aberta
+	local CLIENT_DRIVEN = { Dialogue = true, Card = true, Client = true }
 	local action = Remotes.Get("TutorialAction") :: RemoteEvent
 	action.OnServerEvent:Connect(function(player, stepId)
 		if type(stepId) ~= "string" then
@@ -212,7 +257,7 @@ function TutorialService:Start()
 			return
 		end
 		local step = TutorialConfig.GetStep(index)
-		if not step or step.Advance ~= "Client" then
+		if not step or not CLIENT_DRIVEN[step.Advance] then
 			return
 		end
 		self:Advance(player, stepId)

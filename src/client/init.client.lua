@@ -5,6 +5,9 @@ local ORDER = {
 	"LoadingController",
 	"CardRevealController",
 	"CollectionController",
+	"DialogueController",
+	"ObjectiveArrowController",
+	"PetArrivalController",
 	"TutorialController",
 }
 

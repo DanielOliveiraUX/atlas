@@ -24,18 +24,16 @@ Species.Lumen.Name,Lumen,,,Lumen,Lumen
 Species.Cirro.Name,Cirro,,,Cirro,Cirro
 Species.Fronde.Name,Fronde,,,Frond,Fronda
 Tutorial.Continue,Continuar,,,Continue,Continuar
-Tutorial.Welcome.Title,Bem-vindo à fronteira,,,Welcome to the frontier,Bienvenido a la frontera
-Tutorial.Welcome.Body,Você chegou ao acampamento central. Olhe em volta.,,,"You've reached the central camp. Take a look around.","Llegaste al campamento central. Mira a tu alrededor."
+Tutorial.Welcome.Title,Bem-vindo a ATLAS,,,Welcome to ATLAS,Bienvenido a ATLAS
+Tutorial.Welcome.Body,O Guia do Farol tem algo a dizer.,,,The Beacon Guide has something to say.,El Guía del Faro tiene algo que decir.
 Tutorial.GoToMentor.Title,Fale com o Guia do Farol,,,Talk to the Beacon Guide,Habla con el Guía del Faro
-Tutorial.GoToMentor.Body,A figura ao pé do Farol está esperando por você.,,,"The figure at the foot of the beacon is waiting for you.","La figura al pie del faro te está esperando."
-Tutorial.ReceivePet.Title,Este é o Lumi,,,This is Lumi,Este es Lumi
-Tutorial.ReceivePet.Body,Seu primeiro companheiro. A ponta da cauda dele brilha no escuro — isso vai importar quando a noite cair.,,,"Your first companion. The tip of its tail glows in the dark — that will matter when night falls.","Tu primer compañero. La punta de su cola brilla en la oscuridad — eso importará cuando caiga la noche."
+Tutorial.GoToMentor.Body,Siga a seta. Você pode andar à vontade.,,,Follow the arrow. Feel free to walk around.,Sigue la flecha. Puedes caminar a tu gusto.
+Tutorial.ReceivePet.Title,Conheça o Lumi,,,Meet Lumi,Conoce a Lumi
+Tutorial.ReceivePet.Body,Veja o card do seu primeiro companheiro.,,,Take a look at your first companion's card.,Mira la carta de tu primer compañero.
 Tutorial.OpenCollection.Title,Abra sua coleção,,,Open your collection,Abre tu colección
 Tutorial.OpenCollection.Body,Toque em Coleção para ver o card do Lumi.,,,Tap Collection to see Lumi's card.,Toca Colección para ver la carta de Lumi.
 Tutorial.EquipPet.Title,Equipe o Lumi,,,Equip Lumi,Equipa a Lumi
 Tutorial.EquipPet.Body,"Escolha uma das três vagas. Dá para jogar com uma, duas ou três criaturas.",,,"Pick one of the three slots. You can play with one, two or three creatures.","Elige uno de los tres espacios. Puedes jugar con una, dos o tres criaturas."
-Tutorial.Done.Title,Tudo pronto,,,All set,Todo listo
-Tutorial.Done.Body,Sua base pessoal te espera. Explore — o Lumi vai junto.,,,Your personal base awaits. Go explore — Lumi comes along.,Tu base personal te espera. Explora — Lumi te acompaña.
 Mentor.PromptAction,Falar,,,Talk,Hablar
 Mentor.PromptObject,Guia do Farol,,,Beacon Guide,Guía del Faro
 Card.NewPet,Novo companheiro!,,,A new companion!,¡Nuevo compañero!
@@ -60,3 +58,15 @@ Skill.aconchego,Aconchego,,,Comfort,Cobijo
 Skill.rajada,Rajada,,,Gust,Ráfaga
 Skill.raizes,Raízes,,,Roots,Raíces
 Skill.luzguia,Luz-guia,,,Guiding Light,Luz guía
+Tutorial.MeetPet.Title,Alguém chegou,,,Someone showed up,Alguien llegó
+Tutorial.MeetPet.Body,Olhe para o lado.,,,Look to your side.,Mira a tu lado.
+Tutorial.GoHome.Title,Volte para a sua base,,,Head back to your base,Vuelve a tu base
+Tutorial.GoHome.Body,Siga a seta. O Lumi vai junto.,,,Follow the arrow. Lumi comes along.,Sigue la flecha. Lumi te acompaña.
+Dialogue.Continue,Toque para continuar,,,Tap to continue,Toca para continuar
+Dialogue.Welcome.1,Você conseguiu chegar. Bem-vindo a ATLAS — a fronteira perdida.,,,"You made it. Welcome to ATLAS — the lost frontier.","Lo lograste. Bienvenido a ATLAS — la frontera perdida."
+Dialogue.Welcome.2,Ninguém atravessa essas terras sozinho. Por isso eu chamei alguém para você.,,,"Nobody crosses these lands alone. That's why I called someone for you.","Nadie cruza estas tierras solo. Por eso llamé a alguien para ti."
+Dialogue.MeetPet.1,Ali vem ela — e com pressa.,,,Here she comes — in a hurry.,Ahí viene — y con prisa.
+Dialogue.MeetPet.2,Esta é uma Lumi. A cauda dela acende quando escurece; você vai agradecer por isso.,,,"This is a Lumi. Her tail lights up when it gets dark — you'll thank her for that.","Esta es una Lumi. Su cola se enciende cuando oscurece; se lo agradecerás."
+Dialogue.GoHome.1,Sua base fica logo ali. Vá se instalar e leve a Lumi com você.,,,"Your base is just over there. Go settle in, and take Lumi with you.","Tu base está justo allí. Ve a instalarte y lleva a Lumi contigo."
+Objective.Mentor,Guia do Farol,,,Beacon Guide,Guía del Faro
+Objective.Base,Sua base,,,Your base,Tu base
