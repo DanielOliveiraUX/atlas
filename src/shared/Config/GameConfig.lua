@@ -9,7 +9,15 @@ local GameConfig = {
 	MinTeamForBattle = 1,
 
 	-- Pet inicial (entregue pelo tutorial, igual para todos)
-	StarterSpeciesId = "starter_placeholder",
+	StarterSpeciesId = "lumi",
+
+	-- Captura assistida: teto do bônus somado de TODOS os pets equipados.
+	-- Sem teto, três pets com bônus empurrariam o limiar de Lendária (5%)
+	-- para perto de 35%. Ver decisoes-atlas.md.
+	MaxAssistThresholdBonus = 0.10,
+
+	-- Ferramenta obrigatória para concluir uma captura (ver AT-7)
+	CaptureToolId = "capture_net",
 }
 
 return table.freeze(GameConfig)

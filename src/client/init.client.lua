@@ -3,6 +3,8 @@ local ControllersFolder = script:WaitForChild("Controllers")
 
 local ORDER = {
 	"LoadingController",
+	"CollectionController",
+	"TutorialController",
 }
 
 local controllers = {}

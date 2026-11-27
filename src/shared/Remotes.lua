@@ -8,10 +8,18 @@ local FOLDER_NAME = "Remotes"
 local EVENTS = {
 	"CaptureRequest",
 	"BattleRequest",
-	"TeamUpdate",
+	"TeamUpdate", -- servidor -> cliente: ActiveTeam mudou
 	"InventoryUpdate",
-	"CreatureUpdate",
+	"CreatureUpdate", -- servidor -> cliente: coleção mudou
 	"ExpeditionUpdate",
+
+	-- Tutorial
+	"TutorialUpdate", -- servidor -> cliente: passo atual
+	"TutorialAction", -- cliente -> servidor: "terminei este passo"
+
+	-- Equipe (pedidos do cliente; o servidor valida tudo)
+	"TeamEquipRequest",
+	"TeamUnequipRequest",
 }
 
 local FUNCTIONS = {

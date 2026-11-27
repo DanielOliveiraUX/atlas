@@ -11,6 +11,11 @@ local ServicesFolder = script:WaitForChild("Services")
 -- Ordem de carregamento (adicione novos serviços aqui)
 local ORDER = {
 	"PlayerDataService",
+	"CreatureService",
+	"TeamService",
+	"BaseService",
+	"PetService",
+	"TutorialService",
 }
 
 local services = {}

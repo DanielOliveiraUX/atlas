@@ -6,11 +6,35 @@ Team.Slot,Vaga {slot},,Vaga 1,Slot {slot},Espacio {slot}
 Team.Empty,Vazio,,,Empty,Vacío
 Team.Equip,Equipar,,,Equip,Equipar
 Team.Unequip,Retirar,,,Unequip,Retirar
+Team.Error.NotOwned,Essa criatura não é sua.,,,That creature isn't yours.,Esa criatura no es tuya.
+Team.Error.NoFreeSlot,Nenhuma vaga livre. Retire um pet antes.,,,No free slot. Unequip a pet first.,No hay espacio libre. Retira una mascota primero.
+Team.Error.BadSlot,Vaga inválida.,,,Invalid slot.,Espacio inválido.
 Collection.Title,Coleção,,,Collection,Colección
 Collection.Full,Sua coleção está cheia ({count}/{limit}),,Sua coleção está cheia (10/10),Your collection is full ({count}/{limit}),Tu colección está llena ({count}/{limit})
+Collection.Equipped,Equipado,,,Equipped,Equipado
+Collection.Stored,Na base,,,At the base,En la base
+Creature.Level,Nível {level},,Nível 3,Level {level},Nivel {level}
 Fatigue.Ready,Pronto para batalhar,,,Ready to battle,Listo para combatir
 Fatigue.Remaining,Descansando: {seconds}s,,Descansando: 8s,Resting: {seconds}s,Descansando: {seconds}s
 Difficulty.Explorer,Explorador,,,Explorer,Explorador
 Difficulty.Adventurer,Aventureiro,,,Adventurer,Aventurero
 Difficulty.Survivor,Sobrevivente,,,Survivor,Superviviente
-Species.Starter.Name,Pet inicial,,,Starter pet,Mascota inicial
+Species.Lumi.Name,Lumi,,,Lumi,Lumi
+Species.Lumen.Name,Lumen,,,Lumen,Lumen
+Species.Cirro.Name,Cirro,,,Cirro,Cirro
+Species.Fronde.Name,Fronde,,,Frond,Fronda
+Tutorial.Continue,Continuar,,,Continue,Continuar
+Tutorial.Welcome.Title,Bem-vindo à fronteira,,,Welcome to the frontier,Bienvenido a la frontera
+Tutorial.Welcome.Body,Você chegou ao acampamento central. Olhe em volta.,,,"You've reached the central camp. Take a look around.","Llegaste al campamento central. Mira a tu alrededor."
+Tutorial.GoToMentor.Title,Fale com o Guia do Farol,,,Talk to the Beacon Guide,Habla con el Guía del Faro
+Tutorial.GoToMentor.Body,A figura ao pé do Farol está esperando por você.,,,"The figure at the foot of the beacon is waiting for you.","La figura al pie del faro te está esperando."
+Tutorial.ReceivePet.Title,Este é o Lumi,,,This is Lumi,Este es Lumi
+Tutorial.ReceivePet.Body,Seu primeiro companheiro. A ponta da cauda dele brilha no escuro — isso vai importar quando a noite cair.,,,"Your first companion. The tip of its tail glows in the dark — that will matter when night falls.","Tu primer compañero. La punta de su cola brilla en la oscuridad — eso importará cuando caiga la noche."
+Tutorial.OpenCollection.Title,Abra sua coleção,,,Open your collection,Abre tu colección
+Tutorial.OpenCollection.Body,Toque em Coleção para ver o card do Lumi.,,,Tap Collection to see Lumi's card.,Toca Colección para ver la carta de Lumi.
+Tutorial.EquipPet.Title,Equipe o Lumi,,,Equip Lumi,Equipa a Lumi
+Tutorial.EquipPet.Body,"Escolha uma das três vagas. Dá para jogar com uma, duas ou três criaturas.",,,"Pick one of the three slots. You can play with one, two or three creatures.","Elige uno de los tres espacios. Puedes jugar con una, dos o tres criaturas."
+Tutorial.Done.Title,Tudo pronto,,,All set,Todo listo
+Tutorial.Done.Body,Sua base pessoal te espera. Explore — o Lumi vai junto.,,,Your personal base awaits. Go explore — Lumi comes along.,Tu base personal te espera. Explora — Lumi te acompaña.
+Mentor.PromptAction,Falar,,,Talk,Hablar
+Mentor.PromptObject,Guia do Farol,,,Beacon Guide,Guía del Faro
