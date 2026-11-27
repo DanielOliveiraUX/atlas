@@ -2,7 +2,7 @@
 
 Jogo cooperativo de exploração e captura de criaturas para Roblox (mobile primeiro, também PC; PT, EN, ES).
 
-Os scripts vivem neste repositório e são sincronizados com o Roblox Studio pelo [Rojo](https://rojo.space). Mapas, modelos 3D e cenário ficam no arquivo do place, dentro do Studio.
+Os scripts vivem neste repositório e são sincronizados com o Roblox Studio pelo [Rojo](https://rojo.space). Mapas, modelos 3D e cenário ficam no arquivo do place, **`atlas.rbxl`, que também é versionado aqui** — é ele que traz a vila, o pet inicial e os assets. Clonar o repositório basta para ter o jogo inteiro em qualquer computador.
 
 ## Configurar no Windows (uma vez)
 
@@ -14,14 +14,22 @@ Os scripts vivem neste repositório e são sincronizados com o Roblox Studio pel
    rokit install
    ```
 3. Instale o plugin do Rojo no Studio: `rojo plugin install`.
-4. No Studio, abra o place do ATLAS e em **Game Settings → Security** ative **Enable Studio Access to API Services** (para testar o salvamento de dados).
+4. Abra o `atlas.rbxl` da pasta clonada (duplo clique, ou **Arquivo → Abrir do arquivo** no Studio).
 5. Em **Game Settings → Localization**, defina o idioma de origem como **Português (Brasil)**.
+
+Sobre **Game Settings → Security → Enable Studio Access to API Services**: deixe **desligado** enquanto estiver ajustando o tutorial. Sem ele os dados ficam só em memória, então o tutorial recomeça a cada Play — que é o que você quer para testar. Ligue só quando for testar persistência de verdade.
 
 ## Trabalhar no dia a dia
 
 1. No terminal, dentro da pasta: `rojo serve`
-2. No Studio: aba **Plugins → Rojo → Connect**.
-3. Aperte **Play**. Deve aparecer a tela "Carregando sua expedição…" e depois "Bem-vindo à ATLAS!". No Output: `[ATLAS] Servidor iniciado`.
+2. No Studio, com o `atlas.rbxl` aberto: aba **Plugins → Rojo → Connect**.
+3. Aperte **Play**.
+
+O tutorial deve correr assim: tela "Carregando sua expedição…" → você nasce na praça → faixa "Bem-vindo à fronteira" → "Fale com o Guia do Farol" → chegue perto do NPC e aperte **E** → cartão "Este é o Lumi" → abra **Coleção** (canto inferior direito) → **Equipar** → você vai para a sua base com o Lumi atrás. No Output: `[ATLAS] Servidor iniciado`.
+
+## Salvar o cenário
+
+Mexeu no cenário, nos modelos ou nos assets dentro do Studio? Salve o place (**Ctrl+S**) e faça commit do `atlas.rbxl` — senão a mudança fica só na sua máquina. Mexeu só em script? O arquivo está em `src/`, o place não muda.
 
 ## Estrutura
 
@@ -51,7 +59,7 @@ src/
 ## Andamento
 
 - [x] Fase 1 — Fundação (estrutura, dados com trava de sessão, localização, base de UI mobile)
-- [ ] Fase 2 — Tutorial, coleção e equipe
+- [~] Fase 2 — Tutorial, coleção e equipe — **código escrito e vila construída, ainda não testado em jogo**
 - [ ] Fase 3 — Pet no mundo
 - [ ] Fase 4 — Batalha + fadiga
 - [ ] Fase 5 — Captura
