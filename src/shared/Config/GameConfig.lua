@@ -18,6 +18,21 @@ local GameConfig = {
 
 	-- Ferramenta obrigatória para concluir uma captura (ver AT-7)
 	CaptureToolId = "capture_net",
+
+	-- Teto de cada barra de atributo no card. Só afeta a leitura visual:
+	-- a barra mostra valor/teto, nunca o cálculo de combate.
+	StatBarMax = table.freeze({
+		Health = 200,
+		Attack = 60,
+		Defense = 60,
+		Speed = 40,
+	}),
 }
+
+-- Curva de XP PROVISÓRIA, só para a barra de nível do card ter o que mostrar.
+-- A curva definitiva entra com o EvolutionService (Fase 3 / AT-4).
+function GameConfig.XpForNextLevel(level: number): number
+	return 50 + math.max(0, (level or 1) - 1) * 25
+end
 
 return table.freeze(GameConfig)

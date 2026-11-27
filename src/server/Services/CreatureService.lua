@@ -91,6 +91,12 @@ function CreatureService:Grant(player: Player, speciesId: string, origin: string
 	local creature = self:Build(speciesId, origin)
 	data.Creatures[creature.CreatureId] = creature
 	self:Replicate(player)
+
+	-- Todo pet recebido mostra o card de revelação no cliente,
+	-- venha do tutorial, de uma captura ou de um prêmio de batalha.
+	local granted = Remotes.Get("CreatureGranted") :: RemoteEvent
+	granted:FireClient(player, creature)
+
 	return creature, nil
 end
 

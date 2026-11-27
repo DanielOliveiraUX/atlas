@@ -31,6 +31,7 @@ CreatureConfig.Species = table.freeze({
 	-- jogador perder a primeira batalha.
 	lumi = table.freeze({
 		NameKey = "Species.Lumi.Name",
+		TitleKey = "Species.Lumi.Title",
 		ModelName = "Lumi",
 		Rarity = "Common",
 		Habitat = "Forest",
@@ -45,6 +46,7 @@ CreatureConfig.Species = table.freeze({
 	-- Evolução do Lumi. Maior, pelagem mais clara e fria, luz mais forte.
 	lumen = table.freeze({
 		NameKey = "Species.Lumen.Name",
+		TitleKey = "Species.Lumen.Title",
 		ModelName = "Lumen",
 		Rarity = "Uncommon",
 		Habitat = "Forest",
@@ -59,6 +61,7 @@ CreatureConfig.Species = table.freeze({
 	-- Raposa azul de pontas ciano. Rápida, especialista em rastrear.
 	cirro = table.freeze({
 		NameKey = "Species.Cirro.Name",
+		TitleKey = "Species.Cirro.Title",
 		ModelName = "Cirro",
 		Rarity = "Uncommon",
 		Habitat = "Highland",
@@ -73,6 +76,7 @@ CreatureConfig.Species = table.freeze({
 	-- Criatura verde de orelhas em folha. Resistente, especialista em atrair.
 	fronde = table.freeze({
 		NameKey = "Species.Fronde.Name",
+		TitleKey = "Species.Fronde.Title",
 		ModelName = "Fronde",
 		Rarity = "Common",
 		Habitat = "Forest",

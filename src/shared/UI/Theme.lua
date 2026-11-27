@@ -11,6 +11,36 @@ Theme.Colors = table.freeze({
 	TextMuted = Color3.fromRGB(160, 172, 186),
 })
 
+-- Card da criatura: superfície clara, em contraste com o resto da interface
+Theme.Card = table.freeze({
+	Face = Color3.fromRGB(238, 246, 252),
+	FaceAlt = Color3.fromRGB(216, 232, 245),
+	Slot = Color3.fromRGB(28, 44, 64),
+	Border = Color3.fromRGB(96, 148, 214),
+	Ink = Color3.fromRGB(28, 44, 64),
+	InkMuted = Color3.fromRGB(104, 126, 150),
+	Shine = Color3.fromRGB(255, 255, 255),
+})
+
+Theme.Rarity = table.freeze({
+	Common = Color3.fromRGB(148, 158, 170),
+	Uncommon = Color3.fromRGB(86, 190, 136),
+	Rare = Color3.fromRGB(82, 150, 232),
+	Legendary = Color3.fromRGB(240, 178, 70),
+})
+
+-- Cores das barras de atributo (as mesmas do card de referência)
+Theme.Stat = table.freeze({
+	Health = Color3.fromRGB(236, 118, 118),
+	Attack = Color3.fromRGB(228, 86, 86),
+	Defense = Color3.fromRGB(96, 196, 110),
+	Speed = Color3.fromRGB(240, 196, 78),
+})
+
+function Theme.RarityColor(rarity: string?): Color3
+	return Theme.Rarity[rarity or "Common"] or Theme.Rarity.Common
+end
+
 Theme.Font = Enum.Font.GothamBold
 Theme.FontBody = Enum.Font.Gotham
 

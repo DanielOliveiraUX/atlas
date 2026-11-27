@@ -1,5 +1,9 @@
 -- Mostra o passo atual do tutorial e avisa o servidor quando a parte do
 -- cliente termina. Quem decide o passo é sempre o servidor.
+--
+-- A apresentação do pet inicial NÃO é feita aqui: ela é a revelação normal
+-- de qualquer pet recebido (CardRevealController). O tutorial só espera o
+-- jogador fechar o card.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -9,6 +13,7 @@ local Theme = require(Shared.UI.Theme)
 local Localization = require(Shared.Util.Localization)
 local Remotes = require(Shared.Remotes)
 
+local CardRevealController = require(script.Parent.CardRevealController)
 local CollectionController = require(script.Parent.CollectionController)
 
 local player = Players.LocalPlayer
@@ -21,13 +26,8 @@ local titleLabel: TextLabel
 local bodyLabel: TextLabel
 local stepLabel: TextLabel
 
-local revealCard: Frame
-local revealTitle: TextLabel
-local revealBody: TextLabel
-local revealButton: TextButton
-
 local currentStep: any = nil
-local collectionConnection: RBXScriptConnection? = nil
+local connections: { RBXScriptConnection } = {}
 
 local function sendAction(stepId: string)
 	local action = Remotes.Get("TutorialAction") :: RemoteEvent
@@ -52,24 +52,13 @@ local function hideBanner()
 	banner.Visible = false
 end
 
-local function showReveal(step)
-	revealTitle.Text = Localization.Get(player, step.TitleKey)
-	revealBody.Text = Localization.Get(player, step.BodyKey)
-	revealButton.Text = Localization.Get(player, "Tutorial.Continue")
-	revealCard.Visible = true
-end
-
-local function hideReveal()
-	revealCard.Visible = false
-end
-
 -- Passos ---------------------------------------------------------------------
 
 local function clearConnections()
-	if collectionConnection then
-		collectionConnection:Disconnect()
-		collectionConnection = nil
+	for _, connection in connections do
+		connection:Disconnect()
 	end
+	table.clear(connections)
 end
 
 local function applyStep(step)
@@ -78,28 +67,31 @@ local function applyStep(step)
 
 	if not step then
 		hideBanner()
-		hideReveal()
 		return
 	end
 
 	showBanner(step)
 
 	if step.Id == "ReceivePet" then
-		showReveal(step)
+		-- O card já apareceu sozinho ao receber o pet; esperamos ele fechar.
+		if not CardRevealController:IsShowing() then
+			task.defer(sendAction, "ReceivePet")
+			return
+		end
+		table.insert(connections, CardRevealController.Dismissed:Connect(function()
+			sendAction("ReceivePet")
+		end))
 		return
 	end
 
-	hideReveal()
-
 	if step.Id == "OpenCollection" then
-		-- Se já estiver aberta, conta na hora
 		if CollectionController:IsOpen() then
 			task.defer(sendAction, "OpenCollection")
 			return
 		end
-		collectionConnection = CollectionController.Opened:Connect(function()
+		table.insert(connections, CollectionController.Opened:Connect(function()
 			sendAction("OpenCollection")
-		end)
+		end))
 	end
 end
 
@@ -112,7 +104,6 @@ function TutorialController:Init()
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = 50
 
-	-- Faixa de objetivo, no topo
 	banner = Instance.new("Frame")
 	banner.Name = "Banner"
 	banner.AnchorPoint = Vector2.new(0.5, 0)
@@ -169,66 +160,6 @@ function TutorialController:Init()
 	stepLabel.TextColor3 = Theme.Colors.Accent
 	stepLabel.Text = ""
 	stepLabel.Parent = banner
-
-	-- Cartão de apresentação do pet inicial
-	revealCard = Instance.new("Frame")
-	revealCard.Name = "Reveal"
-	revealCard.AnchorPoint = Vector2.new(0.5, 0.5)
-	revealCard.Position = UDim2.fromScale(0.5, 0.5)
-	revealCard.Size = UDim2.fromOffset(420, 260)
-	revealCard.BackgroundColor3 = Theme.Colors.Background
-	revealCard.BorderSizePixel = 0
-	revealCard.Visible = false
-	revealCard.Parent = gui
-	Theme.Round(revealCard)
-	Theme.ApplyScale(revealCard)
-
-	local revealStroke = Instance.new("UIStroke")
-	revealStroke.Color = Theme.Colors.Accent
-	revealStroke.Thickness = 2
-	revealStroke.Parent = revealCard
-
-	revealTitle = Instance.new("TextLabel")
-	revealTitle.Size = UDim2.new(1, -40, 0, 40)
-	revealTitle.Position = UDim2.fromOffset(20, 24)
-	revealTitle.BackgroundTransparency = 1
-	revealTitle.Font = Theme.Font
-	revealTitle.TextSize = 30
-	revealTitle.TextColor3 = Theme.Colors.Accent
-	revealTitle.Text = ""
-	revealTitle.Parent = revealCard
-
-	revealBody = Instance.new("TextLabel")
-	revealBody.Size = UDim2.new(1, -48, 0, 110)
-	revealBody.Position = UDim2.fromOffset(24, 72)
-	revealBody.BackgroundTransparency = 1
-	revealBody.Font = Theme.FontBody
-	revealBody.TextSize = 19
-	revealBody.TextWrapped = true
-	revealBody.TextYAlignment = Enum.TextYAlignment.Top
-	revealBody.TextColor3 = Theme.Colors.Text
-	revealBody.Text = ""
-	revealBody.Parent = revealCard
-
-	revealButton = Instance.new("TextButton")
-	revealButton.AnchorPoint = Vector2.new(0.5, 1)
-	revealButton.Position = UDim2.new(0.5, 0, 1, -20)
-	revealButton.Size = UDim2.fromOffset(240, Theme.MinTouchSize)
-	revealButton.BackgroundColor3 = Theme.Colors.Primary
-	revealButton.BorderSizePixel = 0
-	revealButton.Font = Theme.Font
-	revealButton.TextSize = 22
-	revealButton.TextColor3 = Theme.Colors.Background
-	revealButton.Text = ""
-	revealButton.Parent = revealCard
-	Theme.Round(revealButton)
-
-	revealButton.Activated:Connect(function()
-		if currentStep and currentStep.Id == "ReceivePet" then
-			hideReveal()
-			sendAction("ReceivePet")
-		end
-	end)
 
 	gui.Parent = player:WaitForChild("PlayerGui")
 end

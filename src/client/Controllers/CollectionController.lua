@@ -12,6 +12,8 @@ local Localization = require(Shared.Util.Localization)
 local Remotes = require(Shared.Remotes)
 local TeamUtil = require(Shared.Util.TeamUtil)
 
+local CreatureCard = require(script.Parent.Parent.UI.CreatureCard)
+
 local player = Players.LocalPlayer
 
 local CollectionController = {}
@@ -131,6 +133,15 @@ local function refreshSlots()
 	end
 end
 
+local function slotIndexOf(creatureId: string): number?
+	for index, key in TeamUtil.SlotKeys do
+		if activeTeam[key] == creatureId then
+			return index
+		end
+	end
+	return nil
+end
+
 local function refreshCards()
 	for _, child in cardsFrame:GetChildren() do
 		if child:IsA("Frame") then
@@ -154,78 +165,35 @@ local function refreshCards()
 
 	for index, id in order do
 		local creature = creatures[id]
-		local card = Instance.new("Frame")
+		local slot = slotIndexOf(id)
+
+		-- mesmo componente da revelação, na versão compacta
+		local card = CreatureCard.Build(creature, { compact = true, equippedSlot = slot })
 		card.Name = id
-		card.Size = UDim2.fromOffset(168, 184)
-		card.BackgroundColor3 = Theme.Colors.Panel
-		card.BorderSizePixel = 0
 		card.LayoutOrder = index
 		card.Parent = cardsFrame
-		Theme.Round(card)
 
-		local equipped = TeamUtil.IsEquipped(activeTeam, id)
-		if equipped then
-			local stroke = Instance.new("UIStroke")
-			stroke.Color = Theme.Colors.Primary
-			stroke.Thickness = 2
-			stroke.Parent = card
-		end
-
-		local name = Instance.new("TextLabel")
-		name.Size = UDim2.new(1, -16, 0, 26)
-		name.Position = UDim2.fromOffset(8, 8)
-		name.BackgroundTransparency = 1
-		name.Font = Theme.Font
-		name.TextSize = 20
-		name.TextXAlignment = Enum.TextXAlignment.Left
-		name.TextColor3 = Theme.Colors.Text
-		name.Text = creatureLabel(creature)
-		name.Parent = card
-
-		local level = Instance.new("TextLabel")
-		level.Size = UDim2.new(1, -16, 0, 20)
-		level.Position = UDim2.fromOffset(8, 34)
-		level.BackgroundTransparency = 1
-		level.Font = Theme.FontBody
-		level.TextSize = 16
-		level.TextXAlignment = Enum.TextXAlignment.Left
-		level.TextColor3 = Theme.Colors.Accent
-		level.Text = Localization.Get(player, "Creature.Level", { level = num(creature.Level) })
-		level.Parent = card
-
-		local state = Instance.new("TextLabel")
-		state.Size = UDim2.new(1, -16, 0, 20)
-		state.Position = UDim2.fromOffset(8, 56)
-		state.BackgroundTransparency = 1
-		state.Font = Theme.FontBody
-		state.TextSize = 15
-		state.TextXAlignment = Enum.TextXAlignment.Left
-		state.TextColor3 = Theme.Colors.TextMuted
-		state.Text = fatigueText(creature)
-		state.Parent = card
-
-		local storage = Instance.new("TextLabel")
-		storage.Size = UDim2.new(1, -16, 0, 20)
-		storage.Position = UDim2.fromOffset(8, 78)
-		storage.BackgroundTransparency = 1
-		storage.Font = Theme.FontBody
-		storage.TextSize = 15
-		storage.TextXAlignment = Enum.TextXAlignment.Left
-		storage.TextColor3 = Theme.Colors.TextMuted
-		storage.Text = Localization.Get(player, if equipped then "Collection.Equipped" else "Collection.Stored")
-		storage.Parent = card
-
-		if not equipped then
-			local equip = button(Localization.Get(player, "Team.Equip"), UDim2.new(1, -16, 0, 40), card)
-			equip.Position = UDim2.new(0, 8, 1, -48)
-			equip.Activated:Connect(function()
+		-- o card inteiro é o alvo de toque: equipa se está guardado, retira se está equipado
+		local hit = Instance.new("TextButton")
+		hit.Name = "Hit"
+		hit.Size = UDim2.fromScale(1, 1)
+		hit.BackgroundTransparency = 1
+		hit.Text = ""
+		hit.ZIndex = 20
+		hit.Parent = card
+		hit.Activated:Connect(function()
+			if slot then
+				local request = Remotes.Get("TeamUnequipRequest") :: RemoteEvent
+				request:FireServer(slot)
+			else
 				local request = Remotes.Get("TeamEquipRequest") :: RemoteEvent
 				request:FireServer(id)
-			end)
-		end
+			end
+		end)
 	end
 
-	cardsFrame.CanvasSize = UDim2.fromOffset(0, math.ceil(count / 3) * 196 + 12)
+	local rows = math.ceil(count / 3)
+	cardsFrame.CanvasSize = UDim2.fromOffset(0, rows * (CreatureCard.CompactSize.Y + 12) + 12)
 end
 
 local function refresh()
@@ -328,7 +296,7 @@ function CollectionController:Init()
 	cardsFrame.Parent = panel
 
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = UDim2.fromOffset(168, 184)
+	grid.CellSize = UDim2.fromOffset(CreatureCard.CompactSize.X, CreatureCard.CompactSize.Y)
 	grid.CellPadding = UDim2.fromOffset(12, 12)
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
 	grid.Parent = cardsFrame

@@ -11,6 +11,7 @@ local EVENTS = {
 	"TeamUpdate", -- servidor -> cliente: ActiveTeam mudou
 	"InventoryUpdate",
 	"CreatureUpdate", -- servidor -> cliente: coleção mudou
+	"CreatureGranted", -- servidor -> cliente: recebeu um pet (dispara o card)
 	"ExpeditionUpdate",
 
 	-- Tutorial

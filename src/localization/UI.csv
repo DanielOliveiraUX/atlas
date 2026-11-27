@@ -38,3 +38,25 @@ Tutorial.Done.Title,Tudo pronto,,,All set,Todo listo
 Tutorial.Done.Body,Sua base pessoal te espera. Explore — o Lumi vai junto.,,,Your personal base awaits. Go explore — Lumi comes along.,Tu base personal te espera. Explora — Lumi te acompaña.
 Mentor.PromptAction,Falar,,,Talk,Hablar
 Mentor.PromptObject,Guia do Farol,,,Beacon Guide,Guía del Faro
+Card.NewPet,Novo companheiro!,,,A new companion!,¡Nuevo compañero!
+Card.Stage,Estágio {stage},,Estágio 2,Stage {stage},Etapa {stage}
+Card.EquippedSlot,Vaga {slot},,Vaga 1,Slot {slot},Espacio {slot}
+Fatigue.Resting,Descansando,,,Resting,Descansando
+Rarity.Common,Comum,,,Common,Común
+Rarity.Uncommon,Incomum,,,Uncommon,Poco común
+Rarity.Rare,Rara,,,Rare,Rara
+Rarity.Legendary,Lendária,,,Legendary,Legendaria
+Stat.Health,Vida,,,Health,Vida
+Stat.Attack,Ataque,,,Attack,Ataque
+Stat.Defense,Defesa,,,Defense,Defensa
+Stat.Speed,Velocidade,,,Speed,Velocidad
+Species.Lumi.Title,Raposa-lanterna,,,Lantern Fox,Zorro linterna
+Species.Lumen.Title,Raposa-farol,,,Beacon Fox,Zorro faro
+Species.Cirro.Title,Raposa-neblina,,,Mist Fox,Zorro niebla
+Species.Fronde.Title,Broto-folha,,,Leafling,Retoño
+Skill.investida,Investida,,,Tackle,Embestida
+Skill.clarao,Clarão,,,Flash,Destello
+Skill.aconchego,Aconchego,,,Comfort,Cobijo
+Skill.rajada,Rajada,,,Gust,Ráfaga
+Skill.raizes,Raízes,,,Roots,Raíces
+Skill.luzguia,Luz-guia,,,Guiding Light,Luz guía
