@@ -78,6 +78,12 @@ local function applyStep(step)
 	showBanner(step)
 	ObjectiveArrowController:SetTarget(step.Target, step.BaseLot)
 
+	-- Se o passo tem fala, a coleção não pode ficar aberta por cima da caixa de
+	-- diálogo. O painel só serve até o jogador equipar; depois disso ele sai.
+	if step.Lines and #step.Lines > 0 and CollectionController:IsOpen() then
+		CollectionController:SetOpen(false)
+	end
+
 	if step.Advance == "Dialogue" then
 		-- Na chegada do pet, as falas correm junto com a corrida; só avança
 		-- quando as duas coisas terminam.
