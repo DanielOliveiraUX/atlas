@@ -9,6 +9,7 @@
 -- Terminada a luta, aparecem DUAS opções, não uma sequência: recolher os
 -- espólios e capturar. Dá para fazer as duas, em qualquer ordem.
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -23,6 +24,8 @@ local player = Players.LocalPlayer
 
 local BattleController = {}
 
+local ALCANCE_DESAFIO = 18 -- igual a BattleConfig.ChallengeDistance
+
 local gui: ScreenGui
 local alvoQuadro: Frame -- barra da criatura, no alto
 local alvoNome: TextLabel
@@ -30,6 +33,8 @@ local alvoBarra: Frame
 local alvoVida: TextLabel
 local dica: TextLabel
 local botaoAtacar: TextButton
+local botaoDesafiar: TextButton
+local alvoProximo: Model? = nil
 local equipeQuadro: Frame
 local resultado: Frame
 local resultadoTitulo: TextLabel
@@ -40,6 +45,8 @@ local botaoSair: TextButton
 
 local barrasDaEquipe: { [number]: { fundo: Frame, barra: Frame, texto: TextLabel, nome: TextLabel } } = {}
 local emBatalha = false
+local cameraConn: RBXScriptConnection? = nil
+local zoomAnterior: number? = nil
 local estadoAtual: any = nil
 local espolioAtual: any = nil
 
@@ -226,26 +233,130 @@ local function listarEspolio(espolio)
 	espolioLista.Size = UDim2.new(1, 0, 0, #itens * 32)
 end
 
+
+-- Câmera de combate -------------------------------------------------------------
+
+-- Enquadra o jogador e a criatura ao mesmo tempo, de lado, como num duelo.
+-- Com a câmera normal (atrás da nuca) o bicho saía do quadro e não dava
+-- para ver golpe nenhum.
+local function acharAlvoNoMundo(): Model?
+	for _, d in workspace:GetChildren() do
+		if d:IsA("Model") and d:GetAttribute("EmBatalha") == true then
+			return d
+		end
+	end
+	return nil
+end
+
+local function ligarCamera()
+	if cameraConn then
+		return
+	end
+	local camera = workspace.CurrentCamera
+	zoomAnterior = player.CameraMaxZoomDistance
+	camera.CameraType = Enum.CameraType.Scriptable
+
+	local suave = camera.CFrame
+	cameraConn = RunService.RenderStepped:Connect(function(dt)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local alvo = acharAlvoNoMundo()
+		if not (root and alvo) then
+			return
+		end
+		local a = root.Position
+		local b = alvo:GetPivot().Position
+		local meio = (a + b) / 2 + Vector3.new(0, 2.2, 0)
+		local entre = b - a
+		local distancia = math.max(entre.Magnitude, 6)
+		-- de lado, perpendicular à linha entre os dois
+		local lado = Vector3.new(entre.Z, 0, -entre.X)
+		if lado.Magnitude < 0.1 then
+			lado = Vector3.new(1, 0, 0)
+		end
+		lado = lado.Unit
+		local recuo = math.clamp(distancia * 1.25 + 9, 14, 30)
+		local desejada = CFrame.lookAt(meio + lado * recuo + Vector3.new(0, distancia * 0.35 + 4, 0), meio)
+		suave = suave:Lerp(desejada, math.clamp(dt * 3, 0, 1))
+		camera.CFrame = suave
+	end)
+end
+
+local function desligarCamera()
+	if cameraConn then
+		cameraConn:Disconnect()
+		cameraConn = nil
+	end
+	local camera = workspace.CurrentCamera
+	camera.CameraType = Enum.CameraType.Custom
+	if zoomAnterior then
+		player.CameraMaxZoomDistance = zoomAnterior
+		zoomAnterior = nil
+	end
+end
+
+
+-- Procura de alvo ---------------------------------------------------------------
+
+-- O cliente só decide o que DESENHAR; quem confere a distância de verdade
+-- e começa a luta é o servidor.
+local function procurarAlvo()
+	if emBatalha then
+		botaoDesafiar.Visible = false
+		return
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		botaoDesafiar.Visible = false
+		return
+	end
+
+	local melhor, melhorDist = nil, ALCANCE_DESAFIO
+	for _, d in workspace:GetChildren() do
+		if d:IsA("Model") and d:GetAttribute("Selvagem") and not d:GetAttribute("EmBatalha") then
+			local dist = (d:GetPivot().Position - root.Position).Magnitude
+            if dist <= melhorDist then
+				melhor, melhorDist = d, dist
+			end
+		end
+	end
+
+	alvoProximo = melhor
+	if melhor then
+		local species = CreatureConfig.Get(melhor:GetAttribute("SpeciesId") or "")
+		local nome = if species then Localization.Get(player, species.NameKey) else "?"
+		botaoDesafiar.Text = string.format("%s  %s", Localization.Get(player, "Battle.Challenge"), nome)
+	end
+	botaoDesafiar.Visible = melhor ~= nil
+end
+
 -- Começo e fim ----------------------------------------------------------------------------
 
 local function abrir(estado)
 	emBatalha = true
+	botaoDesafiar.Visible = false
+	ligarCamera()
 	espolioAtual = nil
 	resultado.Visible = false
 	alvoQuadro.Visible = true
 	equipeQuadro.Visible = true
 	botaoAtacar.Visible = true
+	botaoAtacar.Text = Localization.Get(player, "Battle.Attack")
 	dica.Visible = true
 	dica.Text = Localization.Get(player, "Battle.Tap")
-	gui.Enabled = true
 	desenharEquipe(estado)
 	atualizarEstado(estado)
 end
 
 local function fechar()
 	emBatalha = false
-	gui.Enabled = false
+	desligarCamera()
 	resultado.Visible = false
+	alvoQuadro.Visible = false
+	equipeQuadro.Visible = false
+	botaoAtacar.Visible = false
+	dica.Visible = false
 end
 
 local function mostrarResultado(dados)
@@ -283,7 +394,8 @@ function BattleController:Init()
 	gui.IgnoreGuiInset = true
 	gui.ResetOnSpawn = false
 	gui.DisplayOrder = 55
-	gui.Enabled = false
+	-- fica sempre ligado: fora da batalha ele só mostra o botão de desafiar
+	gui.Enabled = true
 
 	-- Barra da criatura, no alto
 	alvoQuadro = frame("Alvo", gui, Theme.Colors.Panel)
@@ -317,21 +429,50 @@ function BattleController:Init()
 	equipeQuadro.Position = UDim2.new(0, 20, 1, -150)
 	equipeQuadro.Size = UDim2.fromOffset(240, 150)
 
-	-- Alvo de toque: o botão grande é o caminho garantido no celular;
-	-- clicar no bicho no mundo também funciona (ClickDetector no servidor).
+	-- O botão de atacar era transparente e sem texto: quem jogava não
+	-- tinha como saber onde tocar. Agora é um botão grande embaixo, no
+	-- alcance do polegar, longe do joystick e do botão de pulo.
 	botaoAtacar = Instance.new("TextButton")
 	botaoAtacar.Name = "Atacar"
-	botaoAtacar.AnchorPoint = Vector2.new(0.5, 0)
-	botaoAtacar.Position = UDim2.new(0.5, 0, 0, 196)
-	botaoAtacar.Size = UDim2.fromOffset(420, 180)
-	botaoAtacar.BackgroundTransparency = 1
+	botaoAtacar.AnchorPoint = Vector2.new(0.5, 1)
+	botaoAtacar.Position = UDim2.new(0.5, 0, 1, -40)
+	botaoAtacar.Size = UDim2.fromOffset(300, 78)
+	botaoAtacar.BackgroundColor3 = Theme.Colors.Danger
+	botaoAtacar.BorderSizePixel = 0
+	botaoAtacar.Font = Theme.Font
+	botaoAtacar.TextSize = 28
+	botaoAtacar.TextColor3 = Color3.fromRGB(255, 255, 255)
 	botaoAtacar.Text = ""
+	botaoAtacar.AutoButtonColor = true
 	botaoAtacar.Parent = gui
+	arredondar(botaoAtacar, 16)
+	local brilho = Instance.new("UIStroke")
+	brilho.Color = Color3.fromRGB(255, 190, 190)
+	brilho.Thickness = 2
+	brilho.Parent = botaoAtacar
+
+	-- Botão de desafiar: aparece quando há criatura perto e nenhuma luta
+	-- em curso. O prompt no mundo continua valendo, mas no celular acertar
+	-- uma plaquinha pequena no 3D é pior do que um botão fixo.
+	botaoDesafiar = Instance.new("TextButton")
+	botaoDesafiar.Name = "Desafiar"
+	botaoDesafiar.AnchorPoint = Vector2.new(0.5, 1)
+	botaoDesafiar.Position = UDim2.new(0.5, 0, 1, -40)
+	botaoDesafiar.Size = UDim2.fromOffset(300, 72)
+	botaoDesafiar.BackgroundColor3 = Theme.Colors.Accent
+	botaoDesafiar.BorderSizePixel = 0
+	botaoDesafiar.Font = Theme.Font
+	botaoDesafiar.TextSize = 24
+	botaoDesafiar.TextColor3 = Theme.Colors.Background
+	botaoDesafiar.Text = ""
+	botaoDesafiar.Visible = false
+	botaoDesafiar.Parent = gui
+	arredondar(botaoDesafiar, 14)
 
 	dica = rotulo("Dica", gui, "", 17, Theme.Colors.TextMuted)
-	dica.AnchorPoint = Vector2.new(0.5, 0)
-	dica.Position = UDim2.new(0.5, 0, 0, 196)
-	dica.Size = UDim2.fromOffset(420, 24)
+	dica.AnchorPoint = Vector2.new(0.5, 1)
+	dica.Position = UDim2.new(0.5, 0, 1, -126)
+	dica.Size = UDim2.fromOffset(460, 24)
 
 	-- Painel de resultado
 	resultado = frame("Resultado", gui, Theme.Colors.Panel)
@@ -379,6 +520,12 @@ function BattleController:Init()
 	botaoSair = botao("Sair", -16, Theme.Colors.Background)
 	botaoSair.TextColor3 = Theme.Colors.Text
 
+	-- fora da batalha só o botão de desafiar pode aparecer
+	alvoQuadro.Visible = false
+	equipeQuadro.Visible = false
+	botaoAtacar.Visible = false
+	dica.Visible = false
+
 	gui.Parent = player:WaitForChild("PlayerGui")
 end
 
@@ -386,6 +533,21 @@ function BattleController:Start()
 	local atacar = Remotes.Get("BattleAttack") :: RemoteEvent
 	local escolher = Remotes.Get("BattleChoice") :: RemoteEvent
 	local sair = Remotes.Get("BattleLeave") :: RemoteEvent
+
+	botaoDesafiar.Activated:Connect(function()
+		if alvoProximo then
+			(Remotes.Get("BattleChallenge") :: RemoteEvent):FireServer(alvoProximo)
+		end
+	end)
+
+	local acumulado = 0
+	RunService.Heartbeat:Connect(function(dt)
+		acumulado += dt
+		if acumulado >= 0.3 then
+			acumulado = 0
+			procurarAlvo()
+		end
+	end)
 
 	botaoAtacar.Activated:Connect(function()
 		if emBatalha then

@@ -90,13 +90,15 @@ local function placeMarker(worldPosition: Vector3)
 		and point.X >= EDGE_MARGIN and point.X <= viewport.X - EDGE_MARGIN
 		and point.Y >= EDGE_MARGIN and point.Y <= viewport.Y - EDGE_MARGIN
 
+	-- Com o alvo na tela quem mostra o nome é a plaquinha no mundo. O
+	-- marcador só existe para dizer "está fora do seu campo de visão", e
+	-- deixar os dois ligados ao mesmo tempo escrevia o nome duas vezes,
+	-- uma por cima da outra.
 	if onScreen then
-		marker.Position = UDim2.fromOffset(point.X, point.Y)
-		markerArrow.Rotation = 0
-		markerArrow.Text = "▼"
-		markerTitle.Visible = true
+		marker.Visible = false
 		return
 	end
+	marker.Visible = true
 
 	local direction = Vector2.new(point.X, point.Y) - center
 	if not inFront then
@@ -119,7 +121,6 @@ local function placeMarker(worldPosition: Vector3)
 	-- "▼" aponta para baixo; girar para a direção do alvo
 	markerArrow.Text = "▼"
 	markerArrow.Rotation = math.deg(math.atan2(direction.X, direction.Y)) + 180
-	markerTitle.Visible = true
 end
 
 local function follow()

@@ -27,10 +27,17 @@ local EVENTS = {
 	"BattleStart", -- servidor -> cliente: comecou, com o estado inicial
 	"BattleUpdate", -- servidor -> cliente: estado novo apos cada golpe
 	"BattleEnd", -- servidor -> cliente: acabou (vitoria, derrota ou fuga)
+	"BattleChallenge", -- cliente -> servidor: "quero lutar com esta criatura"
 	"BattleAttack", -- cliente -> servidor: "toquei na criatura"
 	"BattleChoice", -- cliente -> servidor: "espolios" ou "capturar"
 	"BattleLeave", -- cliente -> servidor: fechar a tela de resultado
 	"WalletUpdate", -- servidor -> cliente: moedas e materiais mudaram
+
+	-- Loja
+	"ShopBuy", -- cliente -> servidor: quero comprar este item
+	"ShopEquip", -- cliente -> servidor: vestir ou tirar
+	"ShopUpdate", -- servidor -> cliente: moedas, comprados e equipados
+	"ShopResult", -- servidor -> cliente: deu certo ou faltou moeda
 }
 
 local FUNCTIONS = {

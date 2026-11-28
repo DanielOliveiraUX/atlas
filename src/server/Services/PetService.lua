@@ -24,6 +24,8 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CreatureConfig = require(Shared.Config.CreatureConfig)
+local CreatureRig = require(Shared.Util.CreatureRig)
+local ShopConfig = require(Shared.Config.ShopConfig)
 local TeamUtil = require(Shared.Util.TeamUtil)
 
 local Services = script.Parent
@@ -35,7 +37,7 @@ local PetService = {}
 -- Onde ele tenta ficar
 local FOLLOW_BACK = 4.5
 local FOLLOW_SIDE = 2.0
-local STOP_DISTANCE = 2.2
+local STOP_DISTANCE = 1.6
 local CATCHUP_DISTANCE = 14
 local TELEPORT_DISTANCE = 70
 
@@ -59,16 +61,27 @@ local JUMP_COOLDOWN = 0.35
 -- Passada. O modelo é dividido em corpo, cabeça, cauda e dois pares de
 -- patas, então a caminhada é feita girando as peças — não quicando o bicho
 -- inteiro, que era o que dava aquele saltitar estranho.
-local PASSO_BASE = 2.2 -- cadência parada
-local PASSO_POR_VELOCIDADE = 0.40 -- cadência ganha com a velocidade
-local PASSADA_MIN = 0.22 -- rad de abertura da pata, andando devagar
-local PASSADA_MAX = 0.62 -- rad, em disparada
-local BOB_CORPO = 0.07 -- subida do tronco por passada (bem menor que antes)
+-- Amplitude: a primeira versão abria a pata 0,22 rad (13°), o que move a
+-- ponta da pata uns 13 centésimos de stud. De qualquer distância de jogo
+-- isso é invisível, e foi por isso que a caminhada parecia não existir.
+-- Quadrúpede de verdade abre de 40° a 60°.
+local PASSADA_MIN = 0.52 -- rad (30°) andando
+local PASSADA_MAX = 1.00 -- rad (57°) em disparada
+
+-- Cadência em passadas por segundo, com teto. Sem teto, correndo a 32
+-- studs/s o bicho batia mais de 5 passadas por segundo e as patas viravam
+-- um borrão tremendo em vez de passo.
+local CADENCIA_MIN = 1.1
+local CADENCIA_POR_VELOCIDADE = 0.085
+local CADENCIA_MAX = 2.9
+
+local BOB_CORPO = 0.13 -- subida do tronco por passada
 local INCLINA_CORRIDA = 0.10 -- tronco mergulha para a frente correndo
 local BALANCO_CAUDA = 0.42 -- rad de vaivém da cauda
 local CABECA_CONTRA = 0.5 -- quanto a cabeça compensa o balanço do tronco
 local RESPIRO = 0.035
-local MISTURA = 7.0
+local MISTURA_SOBE = 12.0 -- entra em movimento rápido
+local MISTURA_DESCE = 4.0 -- e sai devagar, para não piscar a cada parada
 
 type Peca = { parte: BasePart, repouso: CFrame, pivo: Vector3, grupo: string }
 
@@ -90,6 +103,16 @@ type Gait = {
 
 local activePets: { [Player]: Model } = {}
 local gaits: { [Player]: Gait } = {}
+
+-- Postura de combate. Durante a batalha o pet sai de trás do dono e vai
+-- para o meio do caminho, encarando o bicho. Sem isso ele ficava atrás da
+-- nuca do jogador e não dava para ver luta nenhuma.
+local combate: { [Player]: { alvo: Model, investida: number } } = {}
+
+local POSTURA_AVANCO = 0.42 -- fração do caminho até o inimigo
+local POSTURA_LADO = 1.6
+local INVESTIDA_TEMPO = 0.34
+local INVESTIDA_ALCANCE = 2.6
 
 -- Modelos --------------------------------------------------------------------
 
@@ -140,73 +163,88 @@ local function buildPetModel(speciesId: string): Model?
 	end
 
 	if not model.PrimaryPart then
-		local corpo = model:FindFirstChild("Corpo")
-		if corpo and corpo:IsA("BasePart") then
-			model.PrimaryPart = corpo
-		else
-			-- a maior peça é o tronco; nunca a primeira que aparecer, que no
-			-- Lumi antigo era o brilho da cauda
-			local maior: BasePart? = nil
-			for _, d in model:GetDescendants() do
-				if d:IsA("BasePart") then
-					local v = d.Size.X * d.Size.Y * d.Size.Z
-					if not maior or v > (maior.Size.X * maior.Size.Y * maior.Size.Z) then
-						maior = d
-					end
-				end
-			end
-			model.PrimaryPart = maior
-		end
+		model.PrimaryPart = CreatureRig.AcharCorpo(model)
 	end
 	return model
 end
 
--- Monta a lista de peças móveis com o pivô de cada uma, em espaço do tronco.
-local GRUPOS = {
-	Cabeca = "cabeca",
-	Cauda = "cauda",
-	TailGlow = "cauda",
-	PatasFrente = "frente",
-	PatasTras = "tras",
-}
 
-local function montarRig(model: Model, corpo: BasePart): { Peca }
-	local pecas: { Peca } = {}
-	local pivoDoGrupo: { [string]: Vector3 } = {}
+-- Personalização -------------------------------------------------------------
 
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d ~= corpo then
-			local grupo = GRUPOS[d.Name]
-			if grupo then
-				local pivo: Vector3
-				local px, py, pz = d:GetAttribute("PivoX"), d:GetAttribute("PivoY"), d:GetAttribute("PivoZ")
-				if px and py and pz then
-					pivo = Vector3.new(px, py, pz)
-				elseif pivoDoGrupo[grupo] then
-					pivo = pivoDoGrupo[grupo]
-				else
-					-- sem atributo: patas giram pelo topo, resto pela base
-					local sinal = if grupo == "frente" or grupo == "tras" then 1 else -1
-					local ponto = d.Position + Vector3.new(0, (d.Size.Y / 2) * sinal, 0)
-					pivo = corpo.CFrame:PointToObjectSpace(ponto)
+-- Pinta e enfeita o modelo com o que o jogador comprou e está usando.
+-- Roda só na montagem: nada aqui precisa ser por quadro.
+local function aplicarCosmeticos(model: Model, data)
+	local equipados = data.Cosmetics and data.Cosmetics.Equipados
+	if not equipados then
+		return
+	end
+
+	local function pecasDoGrupo(grupo: string): { BasePart }
+		local nomes = ShopConfig.GruposDePeca[grupo]
+		local achadas = {}
+		if not nomes then
+			return achadas
+		end
+		for _, nome in nomes do
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and (d.Name == nome or (d.Parent and d.Parent.Name == nome)) then
+					table.insert(achadas, d)
 				end
-				pivoDoGrupo[grupo] = pivo
-				table.insert(pecas, {
-					parte = d,
-					repouso = corpo.CFrame:ToObjectSpace(d.CFrame),
-					pivo = pivo,
-					grupo = grupo,
-				})
+			end
+			local direto = model:FindFirstChild(nome)
+			if direto and direto:IsA("BasePart") then
+				table.insert(achadas, direto)
+			end
+		end
+		return achadas
+	end
+
+	for _, itemId in equipados do
+		local item = ShopConfig.Get(itemId)
+		local efeito = item and item.Efeito
+		if not efeito then
+			continue
+		end
+
+		if efeito.Tipo == "Cor" then
+			for _, parte in pecasDoGrupo(efeito.Grupo) do
+				parte.Color = efeito.Cor
+				if parte:IsA("MeshPart") then
+					-- a textura original ignora a cor; sem tirar, a tinta não aparece
+					parte.TextureID = ""
+					parte.Material = Enum.Material.SmoothPlastic
+				end
+			end
+		elseif efeito.Tipo == "Acessorio" then
+			local alvo = pecasDoGrupo(efeito.Grupo)[1]
+			if alvo then
+				local peca = Instance.new("Part")
+				peca.Name = "Acessorio_" .. itemId
+				peca.Anchored = true
+				peca.CanCollide = false
+				peca.CanQuery = false
+				peca.CanTouch = false
+				peca.Size = efeito.Peca.Tamanho
+				peca.Color = efeito.Peca.Cor
+				peca.Material = Enum.Material.SmoothPlastic
+				if efeito.Peca.Forma == "Cilindro" then
+					peca.Shape = Enum.PartType.Cylinder
+					peca.CFrame = alvo.CFrame * CFrame.new(efeito.Deslocamento) * CFrame.Angles(0, 0, math.rad(90))
+				else
+					peca.CFrame = alvo.CFrame * CFrame.new(efeito.Deslocamento)
+				end
+				-- entra no mesmo grupo da peça-alvo, para andar junto na animação
+				peca.Parent = if alvo.Parent and alvo.Parent:IsA("Model") then alvo.Parent else model
+			end
+		elseif efeito.Tipo == "Brilho" then
+			for _, d in model:GetDescendants() do
+				if d:IsA("PointLight") then
+					d.Color = efeito.Cor
+					d.Range = efeito.Alcance
+				end
 			end
 		end
 	end
-	return pecas
-end
-
--- Distância do tronco até a sola, para o bicho pousar no chão.
-local function solaOffsetOf(model: Model, corpo: BasePart): number
-	local cf, size = model:GetBoundingBox()
-	return corpo.Position.Y - (cf.Position.Y - size.Y / 2)
 end
 
 -- Chão -----------------------------------------------------------------------
@@ -257,13 +295,15 @@ local function spawnFor(player: Player)
 	model:SetAttribute("CreatureId", creature.CreatureId)
 	model:SetAttribute("SpeciesId", creature.SpeciesId)
 
+	aplicarCosmeticos(model, data)
+
 	local corpo = model.PrimaryPart
 	if not corpo then
 		model:Destroy()
 		return
 	end
-	local pecas = montarRig(model, corpo)
-	local solaOffset = solaOffsetOf(model, corpo)
+	local pecas = CreatureRig.Montar(model, corpo)
+	local solaOffset = CreatureRig.SolaOffset(model, corpo)
 
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -300,17 +340,28 @@ end
 
 -- Pose ------------------------------------------------------------------------
 
--- Aplica o tronco e, a partir dele, cada peça girada no próprio pivô.
-local function aplicarPose(gait: Gait, corpoCF: CFrame, rotacoes: { [string]: CFrame })
-	gait.corpo.CFrame = corpoCF
-	for _, peca in gait.pecas do
-		local rot = rotacoes[peca.grupo]
-		if rot then
-			local pivo = CFrame.new(peca.pivo)
-			peca.parte.CFrame = corpoCF * pivo * rot * pivo:Inverse() * peca.repouso
-		else
-			peca.parte.CFrame = corpoCF * peca.repouso
-		end
+-- Combate -----------------------------------------------------------------------
+
+-- Remonta o pet para a roupa nova aparecer. Chamado pela loja.
+function PetService:AtualizarVisual(player: Player)
+	if activePets[player] then
+		task.defer(spawnFor, player)
+	end
+end
+
+function PetService:EntrarEmCombate(player: Player, alvo: Model)
+	combate[player] = { alvo = alvo, investida = 0 }
+end
+
+function PetService:SairDeCombate(player: Player)
+	combate[player] = nil
+end
+
+-- Bote para a frente, consumido quadro a quadro pelo acompanhamento.
+function PetService:Investir(player: Player)
+	local c = combate[player]
+	if c then
+		c.investida = INVESTIDA_TEMPO
 	end
 end
 
@@ -329,7 +380,31 @@ local function updateFollow(deltaTime: number)
 		end
 
 		local ignore = { character, model }
-		local alvo = root.CFrame * CFrame.new(FOLLOW_SIDE, 0, FOLLOW_BACK)
+		local luta = combate[player]
+		if luta and not (luta.alvo and luta.alvo.Parent) then
+			combate[player] = nil
+			luta = nil
+		end
+
+		local alvo
+		if luta then
+			-- postura: entre o dono e o bicho, um pouco de lado
+			local inimigo = luta.alvo:GetPivot().Position
+			local entre = Vector3.new(inimigo.X - root.Position.X, 0, inimigo.Z - root.Position.Z)
+			local dir = if entre.Magnitude > 0.1 then entre.Unit else root.CFrame.LookVector
+			local lado = Vector3.new(dir.Z, 0, -dir.X)
+			local avanco = entre.Magnitude * POSTURA_AVANCO
+			if luta.investida > 0 then
+				luta.investida = math.max(luta.investida - dt, 0)
+				-- o bote sai rápido e volta devagar
+				local f = luta.investida / INVESTIDA_TEMPO
+				avanco += math.sin(f * math.pi) * INVESTIDA_ALCANCE
+			end
+			local ponto = root.Position + dir * avanco + lado * POSTURA_LADO
+			alvo = CFrame.new(ponto)
+		else
+			alvo = root.CFrame * CFrame.new(FOLLOW_SIDE, 0, FOLLOW_BACK)
+		end
 		local atual = gait.corpo.Position
 
 		if (Vector3.new(alvo.Position.X - atual.X, 0, alvo.Position.Z - atual.Z)).Magnitude > TELEPORT_DISTANCE then
@@ -338,7 +413,7 @@ local function updateFollow(deltaTime: number)
 			gait.y = chao + gait.solaOffset
 			gait.velocidadeY = 0
 			gait.pulando = false
-			aplicarPose(gait, CFrame.lookAt(
+			CreatureRig.Aplicar(gait.corpo, gait.pecas, CFrame.lookAt(
 				Vector3.new(alvo.Position.X, gait.y, alvo.Position.Z),
 				Vector3.new(alvo.Position.X, gait.y, alvo.Position.Z) + gait.frente), {})
 			continue
@@ -396,15 +471,26 @@ local function updateFollow(deltaTime: number)
 		-- 4. Cadência
 		local noChao = not gait.pulando
 		local andando = if velocidade > 0.5 and noChao then 1 else 0
-		gait.mistura += (andando - gait.mistura) * math.clamp(dt * MISTURA, 0, 1)
-		gait.fase += dt * (PASSO_BASE + velocidade * PASSO_POR_VELOCIDADE) * math.pi
+		-- sobe rápido e desce devagar: o pet alterna entre andar e parar o
+		-- tempo todo, e uma mistura simétrica fazia a passada piscar
+		local taxa = if andando > gait.mistura then MISTURA_SOBE else MISTURA_DESCE
+		gait.mistura += (andando - gait.mistura) * math.clamp(dt * taxa, 0, 1)
+
+		local cadencia = math.min(CADENCIA_MIN + velocidade * CADENCIA_POR_VELOCIDADE, CADENCIA_MAX)
+		gait.fase += dt * cadencia * math.pi * 2
 
 		local corrida = math.clamp((velocidade - WALK_SPEED) / (RUN_SPEED - WALK_SPEED), 0, 1)
 		local passada = (PASSADA_MIN + (PASSADA_MAX - PASSADA_MIN) * corrida) * gait.mistura
 
 		-- 5. Para onde olha
 		local desejada = gait.frente
-		if velocidade > 0.5 and direcao.Magnitude > 0.01 then
+		if luta then
+			local inimigo = luta.alvo:GetPivot().Position
+			local para = Vector3.new(inimigo.X - x, 0, inimigo.Z - z)
+			if para.Magnitude > 0.3 then
+				desejada = para.Unit
+			end
+		elseif velocidade > 0.5 and direcao.Magnitude > 0.01 then
 			desejada = direcao
 		else
 			local paraDono = Vector3.new(root.Position.X - x, 0, root.Position.Z - z)
@@ -416,7 +502,7 @@ local function updateFollow(deltaTime: number)
 		gait.frente = if nova.Magnitude > 0.01 then nova.Unit else desejada
 
 		-- 6. Tronco: sobe e desce duas vezes por passada e mergulha na corrida
-		local bob = math.sin(gait.fase * 2) * BOB_CORPO * gait.mistura
+		local bob = math.abs(math.sin(gait.fase)) * BOB_CORPO * gait.mistura
 		local respiro = math.sin(gait.fase * 0.5) * RESPIRO * (1 - gait.mistura)
 		local inclina = -INCLINA_CORRIDA * corrida * gait.mistura
 			+ math.sin(gait.fase * 2) * 0.03 * gait.mistura
@@ -462,7 +548,7 @@ local function updateFollow(deltaTime: number)
 				0)
 		end
 
-		aplicarPose(gait, corpoCF, rotacoes)
+		CreatureRig.Aplicar(gait.corpo, gait.pecas, corpoCF, rotacoes)
 	end
 end
 
@@ -489,6 +575,7 @@ function PetService:Start()
 	end
 
 	Players.PlayerRemoving:Connect(despawn)
+	Players.PlayerRemoving:Connect(function(p) combate[p] = nil end)
 	RunService.Heartbeat:Connect(updateFollow)
 end
 

@@ -78,6 +78,23 @@ CreatureConfig.Species = table.freeze({
 		Evolution = nil,
 	}),
 
+	-- Couraçado das Dunas. Não é raposa nenhuma: casco de placas, pernas
+	-- curtas e cauda de ferrão. É o bicho hostil da região, o que ataca
+	-- sem ser provocado, então bate mais e anda devagar.
+	cauim = table.freeze({
+		NameKey = "Species.Cauim.Name",
+		TitleKey = "Species.Cauim.Title",
+		ModelName = "Cauim",
+		Rarity = "Uncommon",
+		Habitat = "Desert",
+		CaptureThreshold = 0.18,
+		BaseStats = table.freeze({ Health = 92, Attack = 13, Defense = 14, Speed = 7 }),
+		Growth = table.freeze({ Health = 7, Attack = 2, Defense = 2, Speed = 1 }),
+		Skills = table.freeze({ [1] = "ferroada", [5] = "casco" }),
+		Assist = table.freeze({ Type = "Calm", ThresholdBonus = 0.04 }),
+		Evolution = nil,
+	}),
+
 	-- Raposa azul de pontas ciano. Rápida, especialista em rastrear.
 	cirro = table.freeze({
 		NameKey = "Species.Cirro.Name",

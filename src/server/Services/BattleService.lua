@@ -26,6 +26,7 @@ local TeamUtil = require(Shared.Util.TeamUtil)
 local Services = script.Parent
 local PlayerDataService = require(Services.PlayerDataService)
 local CreatureService = require(Services.CreatureService)
+local PetService = require(Services.PetService)
 
 local BattleService = {}
 
@@ -210,6 +211,7 @@ local function limpar(player: Player)
 		return
 	end
 	batalhas[player] = nil
+	PetService:SairDeCombate(player)
 	if b.modelo and b.modelo.Parent then
 		b.modelo:SetAttribute("EmBatalha", false)
 	end
@@ -258,6 +260,7 @@ function BattleService:Comecar(player: Player, modelo: Model): boolean
 	batalhas[player] = b
 	modelo:SetAttribute("EmBatalha", true)
 
+	PetService:EntrarEmCombate(player, modelo)
 	enviar("BattleStart", player, instantaneo(b))
 	return true
 end
@@ -275,6 +278,7 @@ local function golpeDoJogador(b: Batalha)
 	dano = math.max(math.floor(dano + 0.5), 1)
 
 	b.selvagem.Vida = math.max(b.selvagem.Vida - dano, 0)
+	PetService:Investir(b.player)
 
 	enviar("BattleUpdate", b.player, {
 		Estado = instantaneo(b),
@@ -419,6 +423,19 @@ end
 
 function BattleService:EstaEmBatalha(player: Player): boolean
 	return batalhas[player] ~= nil
+end
+
+-- Clicar na criatura no mundo também ataca. O ClickDetector roda NO
+-- SERVIDOR, então ele não pode disparar um RemoteEvent para si mesmo:
+-- tem que entrar pela mesma porta que o toque na tela usa.
+function BattleService:Atacar(player: Player)
+	aoAtacar(player)
+end
+
+-- Quem está lutando contra este modelo
+function BattleService:AlvoDe(player: Player): Model?
+	local b = batalhas[player]
+	return b and b.modelo or nil
 end
 
 function BattleService:Start()

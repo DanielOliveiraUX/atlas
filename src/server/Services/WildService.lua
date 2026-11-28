@@ -15,10 +15,12 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BattleConfig = require(Shared.Config.BattleConfig)
 local CreatureConfig = require(Shared.Config.CreatureConfig)
+local CreatureRig = require(Shared.Util.CreatureRig)
 local WorldConfig = require(Shared.Config.WorldConfig)
 
 local Services = script.Parent
 local BattleService = require(Services.BattleService)
+local Remotes = require(Shared.Remotes)
 
 local WildService = {}
 
@@ -40,6 +42,8 @@ type Selvagem = {
 	pecas: { { parte: BasePart, repouso: CFrame, pivo: Vector3, grupo: string } },
 	ocupada: Player?,
 	renascerEm: number?,
+	hostil: boolean,
+	prompt: ProximityPrompt?,
 }
 
 local selvagens: { Selvagem } = {}
@@ -55,40 +59,6 @@ local function chaoEm(x: number, z: number, deY: number, ignorar: { Instance }):
 end
 
 -- Modelo -----------------------------------------------------------------------
-
-local GRUPOS = {
-	Cabeca = "cabeca",
-	Cauda = "cauda",
-	TailGlow = "cauda",
-	PatasFrente = "frente",
-	PatasTras = "tras",
-}
-
-local function montarRig(model: Model, corpo: BasePart)
-	local pecas = {}
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d ~= corpo then
-			local grupo = GRUPOS[d.Name]
-			if grupo then
-				local px, py, pz = d:GetAttribute("PivoX"), d:GetAttribute("PivoY"), d:GetAttribute("PivoZ")
-				local pivo
-				if px and py and pz then
-					pivo = Vector3.new(px, py, pz)
-				else
-					local sinal = if grupo == "frente" or grupo == "tras" then 1 else -1
-					pivo = corpo.CFrame:PointToObjectSpace(d.Position + Vector3.new(0, (d.Size.Y / 2) * sinal, 0))
-				end
-				table.insert(pecas, {
-					parte = d,
-					repouso = corpo.CFrame:ToObjectSpace(d.CFrame),
-					pivo = pivo,
-					grupo = grupo,
-				})
-			end
-		end
-	end
-	return pecas
-end
 
 local function construir(speciesId: string): Model?
 	local species = CreatureConfig.Get(speciesId)
@@ -111,22 +81,9 @@ local function construir(speciesId: string): Model?
 		end
 	end
 	if not model.PrimaryPart then
-		model.PrimaryPart = model:FindFirstChild("Corpo") or model:FindFirstChildWhichIsA("BasePart", true)
+		model.PrimaryPart = CreatureRig.AcharCorpo(model)
 	end
 	return model
-end
-
-local function aplicarPose(s: Selvagem, corpoCF: CFrame, rotacoes: { [string]: CFrame })
-	s.corpo.CFrame = corpoCF
-	for _, peca in s.pecas do
-		local rot = rotacoes[peca.grupo]
-		if rot then
-			local pivo = CFrame.new(peca.pivo)
-			peca.parte.CFrame = corpoCF * pivo * rot * pivo:Inverse() * peca.repouso
-		else
-			peca.parte.CFrame = corpoCF * peca.repouso
-		end
-	end
 end
 
 -- Nascimento ----------------------------------------------------------------------
@@ -147,9 +104,8 @@ local function nascer(marco: Vector3, speciesId: string, nivel: number): Selvage
 	model:SetAttribute("Nivel", nivel)
 	model:SetAttribute("Selvagem", true)
 
-	local pecas = montarRig(model, corpo)
-	local cf, tam = model:GetBoundingBox()
-	local solaOffset = corpo.Position.Y - (cf.Position.Y - tam.Y / 2)
+	local pecas = CreatureRig.Montar(model, corpo)
+	local solaOffset = CreatureRig.SolaOffset(model, corpo)
 
 	local chao = chaoEm(marco.X, marco.Z, marco.Y, {}) or marco.Y
 	model.Parent = workspace
@@ -167,8 +123,10 @@ local function nascer(marco: Vector3, speciesId: string, nivel: number): Selvage
 		pecas = pecas,
 		ocupada = nil,
 		renascerEm = nil,
+		hostil = false,
+		prompt = nil,
 	}
-	aplicarPose(s, CFrame.new(marco.X, chao + solaOffset, marco.Z), {})
+	CreatureRig.Aplicar(s.corpo, s.pecas, CFrame.new(marco.X, chao + solaOffset, marco.Z), {})
 	table.insert(selvagens, s)
 	return s
 end
@@ -176,17 +134,38 @@ end
 -- Cliques: é assim que o jogador ataca. Um ClickDetector por peça seria
 -- exagero, então um só, no corpo, com alcance curto.
 local function ligarToque(s: Selvagem)
+	-- Clicar no bicho ataca. Antes isto chamava FireServer() de dentro do
+	-- próprio servidor, o que nunca podia funcionar: era por isso que
+	-- clicar na criatura não dava dano.
 	local detector = Instance.new("ClickDetector")
+	detector.Name = "Alvo"
 	detector.MaxActivationDistance = BattleConfig.EngageDistance
 	detector.Parent = s.corpo
 	detector.MouseClick:Connect(function(player)
-		if s.ocupada == player and BattleService:EstaEmBatalha(player) then
-			local remote = require(Shared.Remotes).Get("BattleAttack") :: RemoteEvent
-			-- o clique no mundo vale como toque: o cliente também manda o seu,
-			-- e o servidor limita o ritmo, então não há golpe dobrado
-			remote:FireServer()
+		if s.ocupada == player then
+			BattleService:Atacar(player)
 		end
 	end)
+
+	-- Desafiar é escolha do jogador, não acidente de passar perto.
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "Desafiar"
+	prompt.ActionText = "Desafiar"
+	prompt.ObjectText = "Criatura selvagem"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = BattleConfig.ChallengeDistance
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = s.corpo
+	prompt.Triggered:Connect(function(player)
+		if s.ocupada or BattleService:EstaEmBatalha(player) then
+			return
+		end
+		if BattleService:Comecar(player, s.modelo) then
+			s.ocupada = player
+			prompt.Enabled = false
+		end
+	end)
+	s.prompt = prompt
 end
 
 -- Ronda e desafio ----------------------------------------------------------------------
@@ -294,13 +273,14 @@ local function sumir(s: Selvagem)
 			break
 		end
 	end
-	local marco, speciesId, nivel = s.marco, s.speciesId, s.nivel
+	local marco, speciesId, nivel, hostil = s.marco, s.speciesId, s.nivel, s.hostil
 	if s.modelo then
 		s.modelo:Destroy()
 	end
 	task.delay(BattleConfig.RespawnDelay, function()
 		local nova = nascer(marco, speciesId, math.random(nivel, nivel + 1))
 		if nova then
+			nova.hostil = hostil
 			ligarToque(nova)
 		end
 	end)
@@ -325,6 +305,7 @@ local function atualizar(dt: number)
 			else
 				-- não foi capturada: levanta e volta a rondar
 				model:SetAttribute("EmBatalha", false)
+				if s.prompt then s.prompt.Enabled = true end
 			end
 			continue
 		end
@@ -342,21 +323,26 @@ local function atualizar(dt: number)
 			s.fase += dt * 3
 			local pos = s.corpo.Position
 			local corpoCF = CFrame.lookAt(pos, pos + s.frente)
-			aplicarPose(s, corpoCF, {
+			CreatureRig.Aplicar(s.corpo, s.pecas, corpoCF, {
 				cauda = CFrame.Angles(0, math.sin(s.fase * 2) * 0.5, 0),
 				cabeca = CFrame.Angles(math.sin(s.fase) * 0.05, 0, 0),
 			})
 			continue
 		end
 
-		-- 1. desafia quem chegar perto com equipe
-		for _, player in Players:GetPlayers() do
-			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-			if root and not BattleService:EstaEmBatalha(player) then
-				if (root.Position - s.corpo.Position).Magnitude <= BattleConfig.EngageDistance then
-					if BattleService:Comecar(player, model) then
-						s.ocupada = player
-						break
+		-- 1. Só as hostis partem para cima sozinhas. As outras esperam o
+		-- jogador apertar "Desafiar": começar batalha por esbarrão tirava
+		-- do jogador a decisão de entrar na luta.
+		if s.hostil then
+			for _, player in Players:GetPlayers() do
+				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+				if root and not BattleService:EstaEmBatalha(player) then
+					if (root.Position - s.corpo.Position).Magnitude <= BattleConfig.EngageDistance then
+						if BattleService:Comecar(player, model) then
+							s.ocupada = player
+							if s.prompt then s.prompt.Enabled = false end
+							break
+						end
 					end
 				end
 			end
@@ -389,7 +375,7 @@ local function atualizar(dt: number)
 		local passada = 0.3 * mexendo
 		local corpoCF = CFrame.lookAt(Vector3.new(x, y + math.sin(s.fase * 2) * 0.05 * mexendo, z),
 			Vector3.new(x, y, z) + s.frente)
-		aplicarPose(s, corpoCF, {
+		CreatureRig.Aplicar(s.corpo, s.pecas, corpoCF, {
 			frente = CFrame.Angles(math.sin(s.fase) * passada, 0, 0),
 			tras = CFrame.Angles(-math.sin(s.fase) * passada, 0, 0),
 			cauda = CFrame.Angles(0, math.sin(s.fase * 0.8) * 0.3, 0),
@@ -412,7 +398,47 @@ local function observarDesmaio()
 	end
 end
 
+-- Desafio vindo do botão na tela. O jogador manda o modelo que quer
+-- enfrentar e o servidor confere se ele está mesmo perto: o cliente não
+-- decide com quem luta nem de onde.
+local function aoDesafiar(player: Player, modelo: Instance?)
+	if BattleService:EstaEmBatalha(player) then
+		return
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not (root and typeof(modelo) == "Instance" and modelo:IsA("Model")) then
+		return
+	end
+	for _, s in selvagens do
+		if s.modelo == modelo and not s.ocupada then
+			if (root.Position - s.corpo.Position).Magnitude <= BattleConfig.ChallengeDistance then
+				if BattleService:Comecar(player, s.modelo) then
+					s.ocupada = player
+					if s.prompt then s.prompt.Enabled = false end
+				end
+			end
+			return
+		end
+	end
+end
+
+-- Quem está por perto e pode ser desafiado, para o cliente desenhar o botão.
+function WildService:PertoDe(posicao: Vector3): Model?
+	local melhor, melhorDist = nil, BattleConfig.ChallengeDistance
+	for _, s in selvagens do
+		if not s.ocupada and s.modelo and s.modelo.Parent then
+			local d = (posicao - s.corpo.Position).Magnitude
+			if d <= melhorDist then
+				melhor, melhorDist = s.modelo, d
+			end
+		end
+	end
+	return melhor
+end
+
 function WildService:Start()
+	(Remotes.Get("BattleChallenge") :: RemoteEvent).OnServerEvent:Connect(aoDesafiar)
+
 	-- nasce uma criatura em cada marco de spawn das regiões que têm tabela
 	local regioes = workspace:FindFirstChild(WorldConfig.RegionsFolder)
 	if regioes then
@@ -420,12 +446,22 @@ function WildService:Start()
 			local regiao = regioes:FindFirstChild(regiaoId)
 			local marcos = regiao and regiao:FindFirstChild("Marcos")
 			if marcos then
+				-- separa as espécies pacíficas das hostis e distribui pelos
+				-- marcos na proporção de BattleConfig.HostileShare
+				local pacificas, hostis = {}, {}
+				for _, e in lista do
+					table.insert(if e.Hostil then hostis else pacificas, e)
+				end
 				for _, marco in marcos:GetChildren() do
 					if marco:GetAttribute("Tipo") == "Spawn" then
-						local escolha = lista[math.random(1, #lista)]
+						local querHostil = #hostis > 0 and math.random() < BattleConfig.HostileShare
+						local fonte = if querHostil then hostis elseif #pacificas > 0 then pacificas else hostis
+						local escolha = fonte[math.random(1, #fonte)]
 						local nivel = math.random(escolha.Nivel[1], escolha.Nivel[2])
 						local s = nascer(marco.Position, escolha.SpeciesId, nivel)
 						if s then
+							s.hostil = escolha.Hostil == true
+							marco:SetAttribute("Hostil", s.hostil)
 							ligarToque(s)
 						end
 					end

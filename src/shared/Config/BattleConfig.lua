@@ -9,7 +9,8 @@
 local BattleConfig = {}
 
 -- Alcance
-BattleConfig.EngageDistance = 26 -- a que distância a selvagem percebe e desafia
+BattleConfig.ChallengeDistance = 18 -- de onde dá para apertar "Desafiar"
+BattleConfig.EngageDistance = 20 -- de onde uma criatura HOSTIL parte para cima
 BattleConfig.LeashDistance = 70 -- longe assim, a batalha se desfaz
 
 -- Ritmo
@@ -40,6 +41,8 @@ BattleConfig.Skills = table.freeze({
 	luzguia = { Multiplicador = 1.5, NomeChave = "Skill.luzguia" },
 	mordida = { Multiplicador = 1.1, NomeChave = "Skill.mordida" },
 	rajada = { Multiplicador = 1.25, NomeChave = "Skill.rajada" },
+	ferroada = { Multiplicador = 1.2, NomeChave = "Skill.ferroada" },
+	casco = { Multiplicador = 0.85, NomeChave = "Skill.casco" },
 })
 
 function BattleConfig.SkillMultiplier(skillId: string?): number
@@ -95,11 +98,16 @@ function BattleConfig.LootFor(rarity: string?)
 end
 
 -- Criaturas selvagens que nascem em cada região.
+-- Hostil = ataca sozinha quem chegar perto. As demais esperam o jogador
+-- apertar "Desafiar". Uma região só com hostis vira corredor de emboscada;
+-- uma só com pacíficas não tem tensão nenhuma. A proporção fica aqui.
 BattleConfig.WildSpawns = table.freeze({
 	Dunas = table.freeze({
-		{ SpeciesId = "mirra", Nivel = { 1, 3 } },
+		{ SpeciesId = "mirra", Nivel = { 1, 3 }, Hostil = false },
+		{ SpeciesId = "cauim", Nivel = { 2, 4 }, Hostil = true },
 	}),
 })
+BattleConfig.HostileShare = 0.35 -- fatia dos marcos que recebe criatura hostil
 
 BattleConfig.RespawnDelay = 25 -- segundos até outra selvagem nascer no lugar
 
