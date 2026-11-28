@@ -79,7 +79,7 @@ end
 
 -- Entrega uma criatura nova. Retorna (criatura, erroKey).
 -- erroKey é uma chave de localização quando falha.
-function CreatureService:Grant(player: Player, speciesId: string, origin: string?)
+function CreatureService:Grant(player: Player, speciesId: string, origin: string?, level: number?)
 	local data = PlayerDataService:GetData(player)
 	if not data then
 		return nil, "Error.DataLoad"
@@ -88,7 +88,7 @@ function CreatureService:Grant(player: Player, speciesId: string, origin: string
 		return nil, "Collection.Full"
 	end
 
-	local creature = self:Build(speciesId, origin)
+	local creature = self:Build(speciesId, origin, level)
 	data.Creatures[creature.CreatureId] = creature
 	self:Replicate(player)
 

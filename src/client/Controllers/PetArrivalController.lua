@@ -229,12 +229,12 @@ function PetArrivalController:Play(speciesId: string)
 	end
 	model.Name = "PetArrivalCinematic"
 
-	-- o modelo olha para -Z, então miramos o oposto do jogador
+	-- a frente do modelo é o LookVector, então miramos direto o jogador
 	local flat = Vector3.new(root.Position.X - spot.X, 0, root.Position.Z - spot.Z)
 	if flat.Magnitude < 0.05 then
 		flat = Vector3.new(0, 0, 1)
 	end
-	local base = CFrame.lookAt(spot, spot - flat.Unit)
+	local base = CFrame.lookAt(spot, spot + flat.Unit)
 
 	-- guarda o tamanho e a posição originais de cada peça para poder escalar
 	local offsets: { [BasePart]: CFrame } = {}

@@ -58,6 +58,26 @@ CreatureConfig.Species = table.freeze({
 		Evolution = nil,
 	}),
 
+	-- Raposa-miragem das Dunas de Âmbar. Orelhas enormes, pelagem de areia.
+	-- É a primeira criatura selvagem que o jogador enfrenta: bate pouco e
+	-- tem pouca vida, para a primeira batalha ensinar sem punir.
+	mirra = table.freeze({
+		NameKey = "Species.Mirra.Name",
+		TitleKey = "Species.Mirra.Title",
+		ModelName = "Mirra",
+		Rarity = "Uncommon",
+		Habitat = "Desert",
+		CaptureThreshold = 0.20,
+		-- Aguenta pancada e bate pouco: a luta dura, mas o jogador ganha.
+		-- Medido em jogo: contra um Lumi nível 1 a batalha leva ~9 segundos
+		-- e custa cerca de um quinto da energia dele.
+		BaseStats = table.freeze({ Health = 78, Attack = 9, Defense = 8, Speed = 18 }),
+		Growth = table.freeze({ Health = 6, Attack = 1, Defense = 1, Speed = 2 }),
+		Skills = table.freeze({ [1] = "mordida", [5] = "rajada" }),
+		Assist = table.freeze({ Type = "Calm", ThresholdBonus = 0.05 }),
+		Evolution = nil,
+	}),
+
 	-- Raposa azul de pontas ciano. Rápida, especialista em rastrear.
 	cirro = table.freeze({
 		NameKey = "Species.Cirro.Name",

@@ -7,6 +7,8 @@ local ORDER = {
 	"CollectionController",
 	"TeamHudController",
 	"SprintController",
+	"ZoneController",
+	"BattleController",
 	"DialogueController",
 	"ObjectiveArrowController",
 	"PetArrivalController",

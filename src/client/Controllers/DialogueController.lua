@@ -139,10 +139,14 @@ function DialogueController:Init()
 	gui.DisplayOrder = 60
 	gui.Enabled = false
 
-	-- toque em qualquer lugar avança
+	-- Toque na parte de baixo da tela avança. Já foi a tela inteira, e isso
+	-- virou um bloqueio invisível: com uma fala aberta, nenhum clique chegava
+	-- ao resto do jogo — nem o de atacar numa batalha.
 	tapButton = Instance.new("TextButton")
 	tapButton.Name = "Tap"
-	tapButton.Size = UDim2.fromScale(1, 1)
+	tapButton.AnchorPoint = Vector2.new(0.5, 1)
+	tapButton.Position = UDim2.fromScale(0.5, 1)
+	tapButton.Size = UDim2.new(1, 0, 0.34, 0)
 	tapButton.BackgroundTransparency = 1
 	tapButton.Text = ""
 	tapButton.AutoButtonColor = false

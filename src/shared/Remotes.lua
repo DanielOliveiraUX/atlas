@@ -22,6 +22,15 @@ local EVENTS = {
 	-- Equipe (pedidos do cliente; o servidor valida tudo)
 	"TeamEquipRequest",
 	"TeamUnequipRequest",
+
+	-- Batalha contra criaturas selvagens
+	"BattleStart", -- servidor -> cliente: comecou, com o estado inicial
+	"BattleUpdate", -- servidor -> cliente: estado novo apos cada golpe
+	"BattleEnd", -- servidor -> cliente: acabou (vitoria, derrota ou fuga)
+	"BattleAttack", -- cliente -> servidor: "toquei na criatura"
+	"BattleChoice", -- cliente -> servidor: "espolios" ou "capturar"
+	"BattleLeave", -- cliente -> servidor: fechar a tela de resultado
+	"WalletUpdate", -- servidor -> cliente: moedas e materiais mudaram
 }
 
 local FUNCTIONS = {

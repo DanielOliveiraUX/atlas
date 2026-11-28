@@ -17,7 +17,7 @@ local player = Players.LocalPlayer
 local CreatureCard = {}
 
 CreatureCard.Size = Vector2.new(360, 620)
-CreatureCard.CompactSize = Vector2.new(168, 212)
+CreatureCard.CompactSize = Vector2.new(168, 296)
 
 -- Barras mostradas no card, nesta ordem (igual à referência)
 local STAT_ORDER = { "Attack", "Defense", "Speed" }
@@ -370,12 +370,80 @@ local function buildCompact(creature, options): Frame
 	xpFill.Size = UDim2.fromScale(math.clamp((creature.Experience or 0) / math.max(needed, 1), 0, 1), 1)
 	corner(xpFill, 4)
 
+	-- Mesmos atributos do card grande, em versão estreita. O card da coleção
+	-- mostrava só o nível, então o jogador perdia a ficha do bicho assim que
+	-- fechava a revelação.
+	local statsHolder = frame("Stats", card)
+	statsHolder.Size = UDim2.new(1, -20, 0, 66)
+	statsHolder.Position = UDim2.fromOffset(10, 176)
+	local statsLayout = Instance.new("UIListLayout")
+	statsLayout.Padding = UDim.new(0, 4)
+	statsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	statsLayout.Parent = statsHolder
+
+	for index, statName in STAT_ORDER do
+		local value = (creature.Stats and creature.Stats[statName]) or 0
+		local max = GameConfig.StatBarMax[statName] or 100
+		local ratio = math.clamp(value / max, 0, 1)
+
+		local row = frame("Stat" .. statName, statsHolder)
+		row.Size = UDim2.new(1, 0, 0, 18)
+		row.LayoutOrder = index
+
+		-- no estreito o selo vira uma inicial, para sobrar barra
+		local chip = frame("Chip", row, Theme.Stat[statName])
+		chip.Size = UDim2.fromOffset(18, 18)
+		corner(chip, 9)
+		local inicial = string.upper(string.sub(Localization.Get(player, "Stat." .. statName), 1, 1))
+		local chipText = label("Text", chip, inicial, 11, Color3.fromRGB(255, 255, 255), Theme.Font)
+		chipText.Size = UDim2.fromScale(1, 1)
+		chipText.TextXAlignment = Enum.TextXAlignment.Center
+
+		local track = frame("Track", row, Theme.Card.Slot)
+		track.Size = UDim2.new(1, -56, 0, 8)
+		track.Position = UDim2.fromOffset(24, 5)
+		corner(track, 4)
+		local fill = frame("Fill", track, Theme.Stat[statName])
+		fill.Size = UDim2.fromScale(ratio, 1)
+		corner(fill, 4)
+
+		local statValue = label("Value", row, num(value), 12, Theme.Card.Ink, Theme.Font)
+		statValue.AnchorPoint = Vector2.new(1, 0)
+		statValue.Size = UDim2.fromOffset(28, 18)
+		statValue.Position = UDim2.new(1, 0, 0, 0)
+		statValue.TextXAlignment = Enum.TextXAlignment.Right
+	end
+
+	-- Habilidades, como no card grande
+	local habilidades = creature.Skills or {}
+	if #habilidades > 0 then
+		local linha = frame("Skills", card)
+		linha.Size = UDim2.new(1, -20, 0, 18)
+		linha.Position = UDim2.fromOffset(10, 246)
+		local layout = Instance.new("UIListLayout")
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		layout.Padding = UDim.new(0, 4)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = linha
+		for index, skillId in habilidades do
+			if index > 2 then break end
+			local chip = frame("Skill" .. index, linha, Theme.Card.FaceAlt)
+			chip.Size = UDim2.fromOffset(70, 18)
+			chip.LayoutOrder = index
+			corner(chip, 9)
+			stroke(chip, rarityColor, 1)
+			local text = label("Text", chip, Localization.Get(player, "Skill." .. skillId), 11, Theme.Card.Ink, Theme.Font)
+			text.Size = UDim2.fromScale(1, 1)
+			text.TextXAlignment = Enum.TextXAlignment.Center
+		end
+	end
+
 	local resting = isResting(creature)
 	local state = label("State", card,
 		if resting then Localization.Get(player, "Fatigue.Resting") else Localization.Get(player, "Fatigue.Ready"),
 		12, if resting then Theme.Colors.Danger else Color3.fromRGB(62, 150, 96))
 	state.Size = UDim2.new(1, -16, 0, 14)
-	state.Position = UDim2.fromOffset(10, 174)
+	state.Position = UDim2.fromOffset(10, 266)
 
 	local tagText = label("Tag", card,
 		if slot
@@ -383,7 +451,7 @@ local function buildCompact(creature, options): Frame
 			else Localization.Get(player, "Collection.Stored"),
 		12, if slot then Theme.Colors.Primary else Theme.Card.InkMuted, Theme.Font)
 	tagText.Size = UDim2.new(1, -16, 0, 14)
-	tagText.Position = UDim2.fromOffset(10, 190)
+	tagText.Position = UDim2.fromOffset(10, 280)
 
 	return card
 end

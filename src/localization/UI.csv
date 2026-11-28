@@ -73,3 +73,37 @@ Objective.Base,Sua base,,,Your base,Tu base
 
 UI.Sprint,Correr,,,Run,Correr
 Team.Tap,Toque para escolher,,,Tap to choose,Toca para elegir
+Zone.Hub.Title,ATLAS,,,ATLAS,ATLAS
+Zone.Hub.Sub,A última vila da fronteira,,,"The last village on the frontier","La última aldea de la frontera"
+Zone.Base.Title,Sua base,,,Your base,Tu base
+Zone.Base.Sub,Lugar de descanso,,,A place to rest,Lugar de descanso
+Zone.Dunas.Title,Dunas de Âmbar,,,Amber Dunes,Dunas de Ámbar
+Zone.Dunas.Sub,Calor seco e pedra rachada,,,"Dry heat and cracked stone","Calor seco y piedra agrietada"
+Zone.Jardins.Title,Jardins de Alvorada,,,Dawn Gardens,Jardines del Alba
+Zone.Jardins.Sub,Tudo aqui floresce,,,Everything blooms here,Aquí todo florece
+Zone.Lajedo.Title,Lajedo de Vidro,,,Glass Flats,Lajas de Vidrio
+Zone.Lajedo.Sub,O gelo guarda o que cai,,,"The ice keeps what falls","El hielo guarda lo que cae"
+Zone.MataRubra.Title,Mata Rubra,,,Red Thicket,Selva Roja
+Zone.MataRubra.Sub,Úmida e cheia de olhos,,,"Humid and full of eyes","Húmeda y llena de ojos"
+Species.Mirra.Name,Mirra,,,Mirra,Mirra
+Species.Mirra.Title,Raposa-miragem,,,Mirage fox,Zorro espejismo
+Skill.mordida,Mordida,,,Bite,Mordisco
+Battle.Title,Batalha,,,Battle,Batalla
+Battle.Tap,Toque na criatura para atacar,,,Tap the creature to attack,Toca a la criatura para atacar
+Battle.Wait,Seu pet está se recompondo,,,Your pet is recovering,Tu mascota se recupera
+Battle.Victory,Criatura derrotada,,,Creature defeated,Criatura derrotada
+Battle.Defeat,Sua equipe não aguentou,,,Your team could not hold,Tu equipo no resistió
+Battle.Fled,A criatura fugiu,,,The creature fled,La criatura huyó
+Battle.YourTeam,Sua equipe,,,Your team,Tu equipo
+Battle.Spoils,Coletar espólios,,,Collect spoils,Recoger botín
+Battle.Capture,Capturar,,,Capture,Capturar
+Battle.SpoilsTaken,Espólios recolhidos,,,Spoils collected,Botín recogido
+Battle.Captured,{nome} entrou na sua coleção,,"Mirra entrou na sua coleção","{nome} joined your collection","{nome} se unió a tu colección"
+Battle.CollectionFull,Sua coleção está cheia,,,Your collection is full,Tu colección está llena
+Battle.Leave,Sair,,,Leave,Salir
+Battle.Level,Nível {level},,Nível 3,Level {level},Nivel {level}
+Material.fibra,Fibra seca,,,Dry fiber,Fibra seca
+Material.areia_fina,Areia fina,,,Fine sand,Arena fina
+Material.cristal_morno,Cristal morno,,,Warm crystal,Cristal tibio
+Material.essencia,Essência,,,Essence,Esencia
+Material.Coins,Moedas,,,Coins,Monedas
