@@ -25,7 +25,17 @@ Sobre **Game Settings → Security → Enable Studio Access to API Services**: d
 2. No Studio, com o `atlas.rbxl` aberto: aba **Plugins → Rojo → Connect**.
 3. Aperte **Play**.
 
-O tutorial deve correr assim: tela "Carregando sua expedição…" → você nasce na praça → faixa "Bem-vindo à fronteira" → "Fale com o Guia do Farol" → chegue perto do NPC e aperte **E** → cartão "Este é o Lumi" → abra **Coleção** (canto inferior direito) → **Equipar** → você vai para a sua base com o Lumi atrás. No Output: `[ATLAS] Servidor iniciado`.
+O tutorial tem 7 passos e nenhum avança sozinho — cada um espera uma ação sua:
+
+1. **Fale com o Guia do Farol** — você nasce na borda da praça, livre para andar. Uma seta no mundo e um indicador na borda da tela apontam o NPC. Chegue perto e aperte **E**.
+2. **Bem-vindo a ATLAS** — duas falas. Um toque completa a linha, outro avança.
+3. **Alguém chegou** — a Lumi entra correndo e para ao seu lado enquanto o mentor fala.
+4. **Conheça o Lumi** — o card de revelação, com o bicho girando no retrato e as barras enchendo.
+5. **Abra sua coleção** — botão no canto inferior direito.
+6. **Equipe o Lumi** — clique no card dentro da coleção.
+7. **Volte para a sua base** — a seta aponta o caminho; o tutorial fecha quando você chega andando.
+
+No Output: `[ATLAS] Servidor iniciado`.
 
 ## Salvar o cenário
 
