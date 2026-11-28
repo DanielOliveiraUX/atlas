@@ -8,6 +8,12 @@ local GameConfig = {
 	MaxTeamSlots = 3,
 	MinTeamForBattle = 1,
 
+	-- Movimento do jogador. Correr é segurar Shift no PC ou o botão na tela
+	-- no celular — não gasta nada por enquanto.
+	WalkSpeed = 16,
+	RunSpeed = 27,
+	SpeedRamp = 0.18, -- segundos para trocar de velocidade, para não ser um tranco
+
 	-- Pet inicial (entregue pelo tutorial, igual para todos)
 	StarterSpeciesId = "lumi",
 

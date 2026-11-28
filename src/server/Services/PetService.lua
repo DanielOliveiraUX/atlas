@@ -28,7 +28,23 @@ local FOLLOW_SPEED = 6.0 -- quanto maior, mais rápido ele alcança
 local TELEPORT_DISTANCE = 60 -- acima disso, aparece do lado em vez de correr
 local HOVER = 0.1
 
+-- Caminhada. O modelo é uma malha só, sem esqueleto, então o passo é feito no
+-- corpo inteiro: ele quica, balança e mergulha o focinho no ritmo da corrida.
+-- Sem isto o pet desliza pelo chão como se estivesse no gelo.
+local GAIT_BASE = 5.5 -- ritmo parado
+local GAIT_PER_SPEED = 0.85 -- quanto o ritmo acelera por stud/s
+local BOB_HEIGHT = 0.22 -- altura do quique
+local PITCH_AMOUNT = 0.07 -- mergulho do focinho
+local ROLL_AMOUNT = 0.09 -- balanço de lado
+local BREATH_HEIGHT = 0.05 -- respiração, quando está parado
+local MOVE_THRESHOLD = 1.2 -- studs/s a partir do qual consideramos que anda
+local BLEND_SPEED = 6.0 -- suavidade da troca entre parado e andando
+
 local activePets: { [Player]: Model } = {}
+
+-- Estado da caminhada, por pet
+type Gait = { phase: number, blend: number, lastPos: Vector3? }
+local gaits: { [Player]: Gait } = {}
 
 -- Modelos --------------------------------------------------------------------
 
@@ -79,8 +95,19 @@ local function buildPetModel(speciesId: string): Model?
 			descendant.CanTouch = false
 		end
 	end
-	if not model.PrimaryPart then
-		model.PrimaryPart = model:FindFirstChildWhichIsA("BasePart", true)
+	-- O pivô tem que ficar no corpo. No Lumi a primeira peça é o brilho da
+	-- cauda, e usar ela deixava o pet deslocado em relação ao jogador.
+	local maior: BasePart? = nil
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			local volume = descendant.Size.X * descendant.Size.Y * descendant.Size.Z
+			if not maior or volume > (maior.Size.X * maior.Size.Y * maior.Size.Z) then
+				maior = descendant
+			end
+		end
+	end
+	if maior then
+		model.PrimaryPart = maior
 	end
 	return model
 end
@@ -93,6 +120,7 @@ local function despawn(player: Player)
 		model:Destroy()
 		activePets[player] = nil
 	end
+	gaits[player] = nil
 end
 
 local function spawnFor(player: Player)
@@ -143,17 +171,40 @@ local function updateFollow(deltaTime: number)
 			continue
 		end
 
+		local gait = gaits[player]
+		if not gait then
+			gait = { phase = 0, blend = 0, lastPos = nil }
+			gaits[player] = gait
+		end
+
 		local target = root.CFrame * CFrame.new(FOLLOW_SIDE, 0, FOLLOW_BACK)
 		local targetPos = Vector3.new(target.Position.X, root.Position.Y - 1.4 + HOVER, target.Position.Z)
 		local current = primary.Position
 
 		if (targetPos - current).Magnitude > TELEPORT_DISTANCE then
-			model:PivotTo(CFrame.new(targetPos, targetPos + root.CFrame.LookVector))
+			model:PivotTo(CFrame.lookAt(targetPos, targetPos - root.CFrame.LookVector))
+			gait.lastPos = targetPos
 			continue
 		end
 
 		local alpha = math.clamp(deltaTime * FOLLOW_SPEED, 0, 1)
 		local nextPos = current:Lerp(targetPos, alpha)
+
+		-- Velocidade real do pet neste quadro, não a do jogador: é o que o olho vê.
+		local travelled = if gait.lastPos then (nextPos - gait.lastPos).Magnitude else 0
+		local speed = if deltaTime > 0 then travelled / deltaTime else 0
+		gait.lastPos = nextPos
+
+		local wantsMove = if speed > MOVE_THRESHOLD then 1 else 0
+		gait.blend += (wantsMove - gait.blend) * math.clamp(deltaTime * BLEND_SPEED, 0, 1)
+		gait.phase += deltaTime * (GAIT_BASE + speed * GAIT_PER_SPEED)
+
+		-- Quique do passo: |sin| sobe rápido e volta ao chão, como pata batendo.
+		local bob = math.abs(math.sin(gait.phase)) * BOB_HEIGHT * gait.blend
+		-- Respirar quando está parado, para o pet não virar estátua.
+		local breath = math.sin(gait.phase * 0.4) * BREATH_HEIGHT * (1 - gait.blend)
+		local pitch = math.sin(gait.phase * 2) * PITCH_AMOUNT * gait.blend
+		local roll = math.sin(gait.phase) * ROLL_AMOUNT * gait.blend
 
 		-- Só vira para onde está indo se realmente se moveu
 		local delta = nextPos - current
@@ -164,7 +215,10 @@ local function updateFollow(deltaTime: number)
 			look = Vector3.new(0, 0, 1)
 		end
 
-		model:PivotTo(CFrame.lookAt(nextPos, nextPos + look.Unit))
+		-- O modelo é desenhado olhando para +Z, o oposto do LookVector de um
+		-- CFrame. Sem o sinal trocado o pet anda de costas.
+		local pos = nextPos + Vector3.new(0, bob + breath, 0)
+		model:PivotTo(CFrame.lookAt(pos, pos - look.Unit) * CFrame.Angles(pitch, 0, roll))
 	end
 end
 
